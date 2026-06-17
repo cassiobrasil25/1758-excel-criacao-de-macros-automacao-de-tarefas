@@ -16,6 +16,9 @@
     "exceljs": "^4.4.0",
     "playwright": "^1.45.0"
   },
+  "overrides": {
+    "uuid": "^11.1.1"
+  },
   "devDependencies": {
     "@types/node": "^20.14.0",
     "tsx": "^4.16.0",
