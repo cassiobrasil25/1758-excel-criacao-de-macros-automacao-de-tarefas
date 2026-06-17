@@ -3,14 +3,16 @@
  * Veja docs/contexto-relatorios.md para as regras travadas (PROMPT v1.2).
  */
 
-/** Um CCE (item da lista processada em lote). */
+/**
+ * Um CCE (item da lista processada em lote).
+ * Modelo: um único documento WebI com prompt/parâmetro — `id` é o valor
+ * informado no prompt para gerar o relatório daquele CCE.
+ */
 export interface CCE {
-  /** Identificador único do CCE (ex.: código). */
+  /** Valor do CCE informado no prompt do relatório (identificador único). */
   id: string;
-  /** Rótulo amigável, opcional. */
+  /** Rótulo amigável, opcional (usado no título do relatório). */
   label?: string;
-  /** Id do documento WebI a abrir/atualizar, se específico por CCE. */
-  docId?: string;
 }
 
 /** Resultado do export bruto do WebI: arquivo presente em disco. */

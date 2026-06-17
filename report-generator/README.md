@@ -2,11 +2,15 @@
 
 Geração de relatórios em **lote** por CCE a partir do **SAP BusinessObjects (BOE) + Web Intelligence (WebI)**, seguindo as regras travadas em [`../docs/contexto-relatorios.md`](../docs/contexto-relatorios.md) (PROMPT v1.2).
 
+## Modelo
+
+Há **um único documento WebI** com um **prompt/parâmetro**; o **CCE é o valor informado no prompt**. O documento é aberto uma vez e, para cada CCE, o prompt é preenchido e executado.
+
 ## Regra principal
 
 **Execução em sequência — `concurrency = 1`** (obrigatório), por estabilidade de sessão no BOE/WebI. Para cada CCE, o pipeline aguarda cada etapa concluir antes de avançar:
 
-1. `runReportForCCE` — refresh/render completo do relatório
+1. `runReportForCCE` — informa o CCE no prompt e dispara refresh/render completo
 2. `exportRaw` — export concluído e **arquivo presente em disco**
 3. `parseAndNormalize` — parse + normalização
 4. `writeIndividualMd` — relatório individual (Markdown)

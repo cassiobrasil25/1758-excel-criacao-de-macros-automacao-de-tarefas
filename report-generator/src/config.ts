@@ -15,6 +15,12 @@ export interface WebiSelectors {
   passwordInput: string;
   loginButton: string;
   refreshButton: string;
+  /** Campo do diálogo de prompts onde o CCE é informado. */
+  promptInput: string;
+  /** Botão opcional "adicionar valor" do prompt (seta ">"). Vazio = não usar. */
+  promptAddButton: string;
+  /** Botão de executar/OK do diálogo de prompts. */
+  promptRunButton: string;
   refreshDoneIndicator: string;
   exportButton: string;
 }
@@ -31,6 +37,8 @@ export interface AppConfig {
   cces: CCE[];
   webi: {
     baseUrl: string;
+    /** URL do documento WebI único (openDocument). Vazio = usar baseUrl. */
+    docUrl: string;
     username: string;
     password: string;
     headless: boolean;
@@ -75,6 +83,7 @@ export function loadConfig(): AppConfig {
       baseUrl:
         process.env.WEBI_BASE_URL ??
         'https://www.consultas.sefaz.go.gov.br/BOE/BI/custom.jsp',
+      docUrl: process.env.WEBI_DOC_URL ?? '',
       username: process.env.WEBI_USERNAME ?? '',
       password: process.env.WEBI_PASSWORD ?? '',
       headless: process.env.WEBI_HEADLESS !== 'false',
@@ -85,6 +94,9 @@ export function loadConfig(): AppConfig {
         passwordInput: process.env.SEL_PASSWORD ?? '#password',
         loginButton: process.env.SEL_LOGIN ?? 'button[type="submit"]',
         refreshButton: process.env.SEL_REFRESH ?? '[title="Refresh"]',
+        promptInput: process.env.SEL_PROMPT_INPUT ?? '.promptValue input',
+        promptAddButton: process.env.SEL_PROMPT_ADD ?? '',
+        promptRunButton: process.env.SEL_PROMPT_RUN ?? '[title="Run"]',
         refreshDoneIndicator: process.env.SEL_REFRESH_DONE ?? '.refresh-complete',
         exportButton: process.env.SEL_EXPORT ?? '[title="Export"]',
       },

@@ -17,6 +17,8 @@ export class WebiBrowserSource implements ReportSource {
   private browser: import('playwright').Browser | undefined;
   private context: import('playwright').BrowserContext | undefined;
   private page: import('playwright').Page | undefined;
+  /** O documento WebI é o mesmo para todos os CCEs — abre uma única vez. */
+  private docOpened = false;
 
   constructor(private readonly cfg: AppConfig) {}
 
@@ -48,21 +50,42 @@ export class WebiBrowserSource implements ReportSource {
     }
   }
 
-  /** (1) refresh/render completo do relatório do CCE. */
+  /**
+   * (1) refresh/render completo do relatório do CCE.
+   *
+   * Modelo: UM ÚNICO documento WebI com prompt/parâmetro. Para cada CCE,
+   * abre o diálogo de prompts, informa o id do CCE e executa, aguardando a
+   * CONCLUSÃO do render (não apenas o clique).
+   */
   async runReportForCCE(cce: CCE): Promise<void> {
     const page = this.requirePage();
     const sel = this.cfg.webi.selectors;
+    const { webi } = this.cfg;
 
-    // TODO(webi): abrir o documento do CCE. Estratégia comum: navegar para a
-    // URL do documento (openDocument) usando cce.docId, ou pesquisar pelo id.
-    if (cce.docId) {
-      const url = new URL(this.cfg.webi.baseUrl);
-      url.searchParams.set('sDocName', cce.docId);
-      await page.goto(url.toString(), { waitUntil: 'domcontentloaded' });
+    // Abre o documento uma única vez (mesmo relatório para todos os CCEs).
+    if (!this.docOpened) {
+      const url = webi.docUrl || webi.baseUrl;
+      await page.goto(url, { waitUntil: 'domcontentloaded' });
+      await page.waitForLoadState('networkidle');
+      this.docOpened = true;
     }
 
-    // Dispara o refresh e aguarda a CONCLUSÃO (não apenas o clique).
+    // Abre o diálogo de prompts (em alguns ambientes ele já aparece ao carregar).
     await page.click(sel.refreshButton);
+    await page.waitForSelector(sel.promptInput, { state: 'visible' });
+
+    // Informa o CCE no prompt (limpa antes para reuso entre CCEs).
+    await page.fill(sel.promptInput, '');
+    await page.fill(sel.promptInput, cce.id);
+
+    // TODO(webi): alguns prompts exigem "adicionar" o valor à lista (seta ">").
+    if (sel.promptAddButton) {
+      const add = page.locator(sel.promptAddButton);
+      if (await add.count()) await add.first().click();
+    }
+
+    // Executa e aguarda render completo.
+    await page.click(sel.promptRunButton);
     await page.waitForSelector(sel.refreshDoneIndicator, { state: 'visible' });
   }
 

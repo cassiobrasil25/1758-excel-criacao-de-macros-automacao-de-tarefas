@@ -9,6 +9,14 @@
 
 ---
 
+## Ambiente / modelo de dados
+
+- **Portal:** SEFAZ-GO — BI Launch Pad em
+  `https://www.consultas.sefaz.go.gov.br/BOE/BI/custom.jsp`.
+- **Modelo do relatório:** um **único documento WebI** com **prompt/parâmetro**;
+  o **CCE é o valor informado no prompt**. O documento é aberto uma vez e, para
+  cada CCE, o prompt é preenchido e executado (refresh).
+
 ## Decisão travada — Modo lote em sequência
 
 No **modo lote**, o padrão é **execução em sequência (`concurrency = 1`)**, por
