@@ -26,6 +26,10 @@ export interface WebiSelectors {
   retrievingText: string;
   /** Texto do controle de exportação (ex.: "Exportar"). */
   exportButtonText: string;
+  /** Texto da opção de formato Excel no diálogo de exportação (ex.: "Excel"). */
+  exportFormatText: string;
+  /** Texto do botão que confirma a exportação no diálogo (ex.: "Exportar"). */
+  exportConfirmText: string;
 }
 
 export interface AppConfig {
@@ -37,6 +41,8 @@ export interface AppConfig {
   screenshotsDir: string;
   logsDir: string;
   consolidatedDir: string;
+  /** Aba do .xlsx exportado a parsear (vazio = primeira aba). */
+  exportSheet: string;
   cces: CCE[];
   webi: {
     baseUrl: string;
@@ -88,6 +94,7 @@ export function loadConfig(): AppConfig {
     screenshotsDir: path.join(runtimeDir, 'screenshots'),
     logsDir: path.join(runtimeDir, 'logs'),
     consolidatedDir: path.join(runtimeDir, 'consolidated'),
+    exportSheet: process.env.WEBI_EXPORT_SHEET ?? '',
     cces: loadCCEs(),
     webi: {
       baseUrl:
@@ -109,6 +116,8 @@ export function loadConfig(): AppConfig {
         runButtonText: process.env.SEL_RUN_TEXT ?? 'Executar',
         retrievingText: process.env.SEL_RETRIEVING_TEXT ?? 'Recuperando dados',
         exportButtonText: process.env.SEL_EXPORT_TEXT ?? 'Exportar',
+        exportFormatText: process.env.SEL_EXPORT_FORMAT_TEXT ?? 'Excel',
+        exportConfirmText: process.env.SEL_EXPORT_CONFIRM_TEXT ?? 'Exportar',
       },
     },
   };

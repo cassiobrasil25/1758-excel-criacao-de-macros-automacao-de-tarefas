@@ -2,7 +2,11 @@ import { CONCURRENCY, ensureDirs, loadConfig } from './config';
 import { RunLogger } from './logger';
 import { parseAndNormalize } from './transform/parse';
 import { writeIndividualMd } from './output/individual';
-import { buildConsolidatedCSVs, writeConsolidatedMd } from './output/consolidated';
+import {
+  buildConsolidatedCSVs,
+  buildConsolidatedXlsx,
+  writeConsolidatedMd,
+} from './output/consolidated';
 import { MockSource } from './webi/mock';
 import { WebiBrowserSource } from './webi/browser';
 import type { NormalizedReport, ReportSource, RunResult } from './types';
@@ -35,8 +39,8 @@ async function main(): Promise<void> {
     for (const cce of cfg.cces) {
       try {
         await source.runReportForCCE(cce); // (1) refresh/render completo
-        const raw = await source.exportRaw(cce); // (2) export presente em disco
-        const report = parseAndNormalize(raw); // (3) parse + normalização
+        const raw = await source.exportRaw(cce); // (2) export (.xlsx) presente em disco
+        const report = await parseAndNormalize(raw, cfg.exportSheet); // (3) parse + normalização
         const individualReportPath = writeIndividualMd(report, cfg.reportsDir); // (4) relatório individual
 
         reports.push(report);
@@ -64,14 +68,16 @@ async function main(): Promise<void> {
   }
 
   // Consolidação final
+  const xlsxPath = await buildConsolidatedXlsx(reports, cfg.consolidatedDir);
   const csvPath = buildConsolidatedCSVs(reports, cfg.consolidatedDir);
   const mdPath = writeConsolidatedMd(results, cfg.consolidatedDir);
 
   const ok = results.filter((r) => r.status === 'success').length;
   const fail = results.length - ok;
   log.info(`Lote concluído | sucesso=${ok} | falha=${fail}`);
-  log.info(`Consolidado CSV: ${csvPath}`);
-  log.info(`Consolidado MD:  ${mdPath}`);
+  log.info(`Consolidado XLSX: ${xlsxPath}`);
+  log.info(`Consolidado CSV:  ${csvPath}`);
+  log.info(`Consolidado MD:   ${mdPath}`);
 
   // Código de saída != 0 se houve qualquer falha (útil para CI/agendadores).
   if (fail > 0) process.exitCode = 1;

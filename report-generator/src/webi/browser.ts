@@ -116,22 +116,30 @@ export class WebiBrowserSource implements ReportSource {
   }
 
   /**
-   * (2) Exporta o resultado renderizado e garante o arquivo em disco.
+   * (2) Exporta o resultado renderizado em EXCEL (.xlsx) e garante o arquivo
+   * em disco. Fluxo: abrir "Exportar" → escolher formato "Excel" → confirmar →
+   * capturar o download.
    *
-   * TODO(webi): o diálogo de "Exportar" (escolha de formato CSV/Excel e de
-   * quais abas) ainda precisa ser confirmado em tela. Este fluxo clica em
-   * "Exportar" e captura o download; ajuste a seleção de formato conforme a UI.
+   * TODO(webi): confirmar em tela o diálogo de exportação (rótulos do formato
+   * "Excel" e do botão de confirmação, e eventual seleção de abas). Os textos
+   * são configuráveis via SEL_EXPORT_*.
    */
   async exportRaw(cce: CCE): Promise<RawExport> {
     const page = this.requirePage();
     const sel = this.cfg.webi.selectors;
-    const filePath = path.join(this.cfg.rawDir, `${cce.id}.csv`);
+    const filePath = path.join(this.cfg.rawDir, `${cce.id}.xlsx`);
 
-    const frame = await this.findFrameWith(sel.exportButtonText).catch(() => page.mainFrame());
-
-    const downloadPromise = page.waitForEvent('download');
+    // Abre o diálogo de exportação.
+    let frame = await this.findFrameWith(sel.exportButtonText).catch(() => page.mainFrame());
     await this.clickByText(frame, sel.exportButtonText);
-    // TODO(webi): se abrir diálogo de formato, selecionar CSV e confirmar aqui.
+
+    // Seleciona o formato Excel (se o diálogo oferecer a opção).
+    frame = await this.findFrameWith(sel.exportFormatText).catch(() => frame);
+    await this.clickByText(frame, sel.exportFormatText).catch(() => undefined);
+
+    // Confirma e captura o download.
+    const downloadPromise = page.waitForEvent('download');
+    await this.clickByText(frame, sel.exportConfirmText);
     const download = await downloadPromise;
     await download.saveAs(filePath);
 
