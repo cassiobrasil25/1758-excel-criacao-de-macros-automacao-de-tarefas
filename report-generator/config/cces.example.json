@@ -1,0 +1,5 @@
+[
+  { "id": "CCE-001", "label": "Centro A", "docId": "12345" },
+  { "id": "CCE-002", "label": "Centro B", "docId": "12346" },
+  { "id": "CCE-003", "label": "Centro C", "docId": "12347" }
+]
