@@ -2,9 +2,25 @@
 
 Geração de relatórios em **lote** por CCE a partir do **SAP BusinessObjects (BOE) + Web Intelligence (WebI)**, seguindo as regras travadas em [`../docs/contexto-relatorios.md`](../docs/contexto-relatorios.md) (PROMPT v1.2).
 
-## Modelo
+## Modelo (SEFAZ-GO / WebI DHTML)
 
-Há **um único documento WebI** com um **prompt/parâmetro**; o **CCE é o valor informado no prompt**. O documento é aberto uma vez e, para cada CCE, o prompt é preenchido e executado.
+Há **um único documento WebI** com prompts; no painel **"Entrada de Prompt do Usuário"** informa-se o **CCE** no campo **"Inserir CCE:"** e clica-se em **"Executar"**. Surge **"Recuperando dados"** durante o render (some quando conclui). A automação mira por **texto/rótulo** (PT-BR), pois os ids do WebI DHTML são dinâmicos, e varre os **iframes** da página.
+
+## Executar no Google Chrome (recomendado: conectar ao Chrome já logado)
+
+Como você já acessa o portal logado, o caminho mais estável é conectar ao seu Chrome via porta de depuração e reaproveitar a sessão/relatório abertos:
+
+```bash
+# 1) Feche o Chrome e reabra com a porta de depuração:
+#    Linux:   google-chrome --remote-debugging-port=9222
+#    Windows: "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222
+#    macOS:   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --remote-debugging-port=9222
+# 2) Faça login no portal e abra o relatório.
+# 3) No .env: WEBI_CHROME_CDP=http://localhost:9222
+npm start
+```
+
+Alternativa (sem CDP): deixe `WEBI_CHROME_CDP` vazio — o script **lança** um Chrome novo (`channel: chrome`) e faz login com `WEBI_USERNAME`/`WEBI_PASSWORD`.
 
 ## Regra principal
 

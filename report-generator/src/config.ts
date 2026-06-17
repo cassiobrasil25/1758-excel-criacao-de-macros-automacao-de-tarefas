@@ -14,15 +14,18 @@ export interface WebiSelectors {
   usernameInput: string;
   passwordInput: string;
   loginButton: string;
-  refreshButton: string;
-  /** Campo do diálogo de prompts onde o CCE é informado. */
-  promptInput: string;
-  /** Botão opcional "adicionar valor" do prompt (seta ">"). Vazio = não usar. */
-  promptAddButton: string;
-  /** Botão de executar/OK do diálogo de prompts. */
-  promptRunButton: string;
-  refreshDoneIndicator: string;
-  exportButton: string;
+  /**
+   * Rótulo que precede o campo do CCE no painel "Entrada de Prompt do Usuário".
+   * O input é localizado como o primeiro <input> após esse texto (ids do WebI
+   * DHTML são dinâmicos, por isso usamos texto).
+   */
+  promptCceLabel: string;
+  /** Texto do botão que executa o prompt (ex.: "Executar"). */
+  runButtonText: string;
+  /** Texto do indicador de carregamento (ex.: "Recuperando dados"). */
+  retrievingText: string;
+  /** Texto do controle de exportação (ex.: "Exportar"). */
+  exportButtonText: string;
 }
 
 export interface AppConfig {
@@ -39,6 +42,13 @@ export interface AppConfig {
     baseUrl: string;
     /** URL do documento WebI único (openDocument). Vazio = usar baseUrl. */
     docUrl: string;
+    /**
+     * Endpoint CDP do Chrome já aberto (ex.: http://localhost:9222).
+     * Se definido, conecta ao seu Chrome e reaproveita a sessão/relatório abertos.
+     */
+    cdpUrl: string;
+    /** Canal do navegador ao LANÇAR (sem CDP). Padrão: "chrome". */
+    channel: string;
     username: string;
     password: string;
     headless: boolean;
@@ -84,21 +94,21 @@ export function loadConfig(): AppConfig {
         process.env.WEBI_BASE_URL ??
         'https://www.consultas.sefaz.go.gov.br/BOE/BI/custom.jsp',
       docUrl: process.env.WEBI_DOC_URL ?? '',
+      cdpUrl: process.env.WEBI_CHROME_CDP ?? '',
+      channel: process.env.WEBI_BROWSER_CHANNEL ?? 'chrome',
       username: process.env.WEBI_USERNAME ?? '',
       password: process.env.WEBI_PASSWORD ?? '',
       headless: process.env.WEBI_HEADLESS !== 'false',
       timeoutMs: Number(process.env.WEBI_TIMEOUT_MS ?? 60000),
-      // Seletores variam por versão do BI Launch Pad / WebI — ajuste no .env.
+      // Rótulos em PT-BR observados na UI do WebI da SEFAZ-GO (ids são dinâmicos).
       selectors: {
         usernameInput: process.env.SEL_USERNAME ?? '#username',
         passwordInput: process.env.SEL_PASSWORD ?? '#password',
         loginButton: process.env.SEL_LOGIN ?? 'button[type="submit"]',
-        refreshButton: process.env.SEL_REFRESH ?? '[title="Refresh"]',
-        promptInput: process.env.SEL_PROMPT_INPUT ?? '.promptValue input',
-        promptAddButton: process.env.SEL_PROMPT_ADD ?? '',
-        promptRunButton: process.env.SEL_PROMPT_RUN ?? '[title="Run"]',
-        refreshDoneIndicator: process.env.SEL_REFRESH_DONE ?? '.refresh-complete',
-        exportButton: process.env.SEL_EXPORT ?? '[title="Export"]',
+        promptCceLabel: process.env.SEL_PROMPT_CCE_LABEL ?? 'Inserir CCE',
+        runButtonText: process.env.SEL_RUN_TEXT ?? 'Executar',
+        retrievingText: process.env.SEL_RETRIEVING_TEXT ?? 'Recuperando dados',
+        exportButtonText: process.env.SEL_EXPORT_TEXT ?? 'Exportar',
       },
     },
   };

@@ -22,31 +22,36 @@ async function main(): Promise<void> {
   console.log(`Abrindo ${cfg.webi.baseUrl} ...`);
   await page.goto(cfg.webi.baseUrl, { waitUntil: 'networkidle' });
 
-  const controls = await page.$$eval('input, button, select, a[role="button"]', (els) =>
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    els.map((el: any) => {
-      const tag = String(el.tagName).toLowerCase();
-      return {
-        tag,
-        id: el.id || '',
-        name: el.name || '',
-        type: el.type || '',
-        placeholder: el.placeholder || '',
-        text: (el.textContent || '').trim().slice(0, 40),
-        suggestedSelector: el.id
-          ? `#${el.id}`
-          : el.name
-            ? `[name="${el.name}"]`
-            : tag,
-      };
-    }),
-  );
-
-  console.log('\n=== Controles encontrados ===');
-  for (const c of controls) {
-    console.log(
-      `${c.tag.padEnd(7)} sel=${c.suggestedSelector.padEnd(28)} type=${c.type.padEnd(10)} text="${c.text}"`,
-    );
+  // A UI do WebI DHTML vive em iframes — varre todos os frames.
+  for (const frame of page.frames()) {
+    let controls: Array<Record<string, string>> = [];
+    try {
+      controls = await frame.$$eval('input, button, select, a[role="button"]', (els) =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        els.map((el: any) => {
+          const tag = String(el.tagName).toLowerCase();
+          return {
+            tag,
+            type: el.type || '',
+            text: (el.textContent || el.value || '').trim().slice(0, 40),
+            suggestedSelector: el.id
+              ? `#${el.id}`
+              : el.name
+                ? `[name="${el.name}"]`
+                : tag,
+          };
+        }),
+      );
+    } catch {
+      continue; // frame cross-origin/destacado
+    }
+    if (controls.length === 0) continue;
+    console.log(`\n=== Frame: ${frame.url().slice(0, 80)} ===`);
+    for (const c of controls) {
+      console.log(
+        `${c.tag.padEnd(7)} sel=${c.suggestedSelector.padEnd(28)} type=${c.type.padEnd(10)} text="${c.text}"`,
+      );
+    }
   }
 
   const shot = path.join(cfg.screenshotsDir, 'inspect-login.png');
