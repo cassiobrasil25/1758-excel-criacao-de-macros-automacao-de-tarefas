@@ -72,7 +72,9 @@ export function loadConfig(): AppConfig {
     consolidatedDir: path.join(runtimeDir, 'consolidated'),
     cces: loadCCEs(),
     webi: {
-      baseUrl: process.env.WEBI_BASE_URL ?? '',
+      baseUrl:
+        process.env.WEBI_BASE_URL ??
+        'https://www.consultas.sefaz.go.gov.br/BOE/BI/custom.jsp',
       username: process.env.WEBI_USERNAME ?? '',
       password: process.env.WEBI_PASSWORD ?? '',
       headless: process.env.WEBI_HEADLESS !== 'false',

@@ -47,6 +47,20 @@ npm start                   # modo webi (precisa do .env e do browser)
 npm run start:mock          # modo mock (sem BOE — valida a orquestração)
 ```
 
+### Descobrindo os seletores do seu WebI
+
+O portal padrão é o da **SEFAZ-GO** (`https://www.consultas.sefaz.go.gov.br/BOE/BI/custom.jsp`),
+mas a página de login é customizada e protegida por WAF — os seletores precisam
+ser confirmados no seu ambiente. Rode (localmente, com acesso ao portal):
+
+```bash
+npm run inspect
+```
+
+Ele abre a página, lista os controles (id/name/type de cada input e botão) e
+salva um screenshot em `runtime/screenshots/inspect-login.png`. Use a saída
+para preencher `SEL_USERNAME`, `SEL_PASSWORD` e `SEL_LOGIN` no `.env`.
+
 ### Modo mock
 
 Não acessa o BOE: gera um CSV bruto sintético por CCE e roda todo o pipeline (parse → relatório individual → consolidação). Útil para validar a lógica e em CI. CCEs com id iniciando em `FAIL` falham de propósito, exercitando o caminho de erro (`screenshot + log + continua`).
