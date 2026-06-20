@@ -7,8 +7,9 @@ import {
   buildConsolidatedXlsx,
   writeConsolidatedMd,
 } from './output/consolidated';
-import { detectRegimeTransitions } from './transform/regime';
+import { detectRegimeTransitions, transitionsByCompany } from './transform/regime';
 import { writeRegimeTransitionReport } from './output/regime-report';
+import { buildLevantamentoReport } from './output/levantamento-efd';
 import { MockSource } from './webi/mock';
 import { WebiBrowserSource } from './webi/browser';
 import type { NormalizedReport, ReportSource, RunResult } from './types';
@@ -78,6 +79,16 @@ async function main(): Promise<void> {
   const transitions = detectRegimeTransitions(reports, cfg.regime);
   const regimeReport = await writeRegimeTransitionReport(transitions, cfg.consolidatedDir);
 
+  // Relatório do Levantamento: todas as colunas da planilha + as duas datas.
+  const byCompany = transitionsByCompany(transitions);
+  const levantamento = await buildLevantamentoReport(
+    cfg.levantamento.sourcePath,
+    cfg.levantamento.joinKey,
+    byCompany,
+    cfg.consolidatedDir,
+    cfg.levantamento.sheet || undefined,
+  );
+
   const ok = results.filter((r) => r.status === 'success').length;
   const fail = results.length - ok;
   log.info(`Lote concluído | sucesso=${ok} | falha=${fail}`);
@@ -85,6 +96,15 @@ async function main(): Promise<void> {
   log.info(`Consolidado CSV:  ${csvPath}`);
   log.info(`Consolidado MD:   ${mdPath}`);
   log.info(`Transição Simples→Normal: ${transitions.length} empresa(s) | ${regimeReport.xlsx}`);
+  if (levantamento) {
+    log.info(
+      `Levantamento + datas: ${levantamento.matched}/${levantamento.totalRows} casados | ${levantamento.xlsx}`,
+    );
+  } else {
+    log.info(
+      `Levantamento: planilha de origem não encontrada em ${cfg.levantamento.sourcePath} (etapa pulada).`,
+    );
+  }
 
   // Código de saída != 0 se houve qualquer falha (útil para CI/agendadores).
   if (fail > 0) process.exitCode = 1;

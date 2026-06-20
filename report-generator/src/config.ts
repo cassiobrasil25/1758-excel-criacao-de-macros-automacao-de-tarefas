@@ -55,6 +55,14 @@ export interface AppConfig {
     yearField: string;
     simplesPattern: RegExp;
     normalPattern: RegExp;
+    saidaSimplesField?: string;
+    efdObrigField?: string;
+  };
+  /** Relatório do Levantamento (planilha de origem + datas de regime). */
+  levantamento: {
+    sourcePath: string;
+    joinKey: string;
+    sheet: string;
   };
   cces: CCE[];
   webi: {
@@ -114,6 +122,15 @@ export function loadConfig(): AppConfig {
       yearField: process.env.REGIME_YEAR_FIELD ?? 'Ano',
       simplesPattern: new RegExp(process.env.REGIME_SIMPLES_PATTERN ?? 'simples', 'i'),
       normalPattern: new RegExp(process.env.REGIME_NORMAL_PATTERN ?? 'normal', 'i'),
+      saidaSimplesField: process.env.REGIME_DATE_SAIDA_SIMPLES_FIELD || undefined,
+      efdObrigField: process.env.REGIME_DATE_EFD_FIELD || undefined,
+    },
+    levantamento: {
+      sourcePath:
+        process.env.LEVANTAMENTO_SOURCE_PATH ??
+        path.resolve(__dirname, '..', 'config', 'levantamento.xlsx'),
+      joinKey: process.env.LEVANTAMENTO_JOIN_KEY ?? 'CNPJ',
+      sheet: process.env.LEVANTAMENTO_SHEET ?? '',
     },
     cces: loadCCEs(),
     webi: {

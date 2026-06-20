@@ -77,6 +77,24 @@ ao longo dos **anos** — a empresa entra no relatório se teve Simples num ano 
 Normal num ano posterior. Campos e padrões são configuráveis via `REGIME_*` no
 `.env` (coluna do regime, identificador, coluna de ano, regex de cada regime).
 
+O relatório inclui a **data em que deixou o Simples** e a **data de
+obrigatoriedade da EFD**. Se os dados extraídos tiverem colunas de data
+explícitas, configure `REGIME_DATE_SAIDA_SIMPLES_FIELD` / `REGIME_DATE_EFD_FIELD`;
+senão, as datas são derivadas dos anos (31/12 do último ano Simples; 01/01 do
+primeiro ano Normal).
+
+### Relatório do Levantamento (planilha + as duas datas)
+
+Enriquece uma planilha de origem (ex.: *Levantamento de Autos*) repassando
+**todas as colunas** dela e acrescentando **Data Saída Simples Nacional** e
+**Data Obrigatoriedade EFD**, casadas por CNPJ (normalizado por dígitos). Saída:
+`runtime/consolidated/levantamento-com-datas.xlsx`.
+
+Configure em `.env`: `LEVANTAMENTO_SOURCE_PATH` (caminho do `.xlsx` — converta o
+`.xls` para `.xlsx`), `LEVANTAMENTO_JOIN_KEY` (padrão `CNPJ`) e
+`LEVANTAMENTO_SHEET` (aba; vazio = primeira). Se o arquivo não existir, a etapa
+é pulada sem erro.
+
 ## Como usar
 
 ```bash

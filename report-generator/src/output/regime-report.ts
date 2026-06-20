@@ -9,6 +9,8 @@ const COLUMNS = [
   'CCE',
   'Ultimo Ano Simples',
   'Primeiro Ano Normal',
+  'Data Saida Simples Nacional',
+  'Data Obrigatoriedade EFD',
   'Linha do Tempo',
 ] as const;
 
@@ -27,6 +29,8 @@ export async function writeRegimeTransitionReport(
     CCE: t.cce,
     'Ultimo Ano Simples': t.ultimoAnoSimples,
     'Primeiro Ano Normal': t.primeiroAnoNormal,
+    'Data Saida Simples Nacional': t.dataSaidaSimples,
+    'Data Obrigatoriedade EFD': t.dataObrigatoriedadeEFD,
     'Linha do Tempo': t.linhaDoTempo,
   }));
 
@@ -56,11 +60,13 @@ function renderMd(transitions: RegimeTransition[]): string {
     return lines.join('\n');
   }
 
-  lines.push('| CNPJ | Razão Social | CCE | Último Ano Simples | Primeiro Ano Normal | Linha do Tempo |');
-  lines.push('| --- | --- | --- | --- | --- | --- |');
+  lines.push(
+    '| CNPJ | Razão Social | CCE | Último Ano Simples | Primeiro Ano Normal | Data Saída Simples | Data Obrigatoriedade EFD | Linha do Tempo |',
+  );
+  lines.push('| --- | --- | --- | --- | --- | --- | --- | --- |');
   for (const t of transitions) {
     lines.push(
-      `| ${t.cnpj} | ${esc(t.razaoSocial)} | ${t.cce} | ${t.ultimoAnoSimples} | ${t.primeiroAnoNormal} | ${esc(t.linhaDoTempo)} |`,
+      `| ${t.cnpj} | ${esc(t.razaoSocial)} | ${t.cce} | ${t.ultimoAnoSimples} | ${t.primeiroAnoNormal} | ${t.dataSaidaSimples} | ${t.dataObrigatoriedadeEFD} | ${esc(t.linhaDoTempo)} |`,
     );
   }
   lines.push('');

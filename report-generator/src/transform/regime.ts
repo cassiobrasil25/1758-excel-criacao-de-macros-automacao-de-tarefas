@@ -11,6 +11,10 @@ export interface RegimeOptions {
   simplesPattern: RegExp;
   /** Regex que reconhece o Regime Normal (ex.: /normal/i). */
   normalPattern: RegExp;
+  /** (Opcional) coluna com a data de saída do Simples, se existir nos dados. */
+  saidaSimplesField?: string;
+  /** (Opcional) coluna com a data de obrigatoriedade da EFD, se existir. */
+  efdObrigField?: string;
 }
 
 export interface RegimeTransition {
@@ -19,6 +23,10 @@ export interface RegimeTransition {
   cce: string;
   ultimoAnoSimples: string;
   primeiroAnoNormal: string;
+  /** Data em que deixou de ser do Simples Nacional. */
+  dataSaidaSimples: string;
+  /** Data em que passou a ser obrigada a declarar a EFD. */
+  dataObrigatoriedadeEFD: string;
   /** Linha do tempo "ano:regime" para conferência. */
   linhaDoTempo: string;
 }
@@ -30,6 +38,8 @@ interface Observation {
   year: number;
   regime: 'simples' | 'normal' | 'outro';
   rawRegime: string;
+  dateSaida?: string;
+  dateEfd?: string;
 }
 
 /**
@@ -59,6 +69,12 @@ export function detectRegimeTransitions(
       /nome\s*empres/i,
       /nome\s*fantasia/i,
     ]);
+    const saidaCol = opts.saidaSimplesField
+      ? resolveCol(cols, opts.saidaSimplesField, [/sa.da.*simples/i, /exclus.*simples/i])
+      : undefined;
+    const efdCol = opts.efdObrigField
+      ? resolveCol(cols, opts.efdObrigField, [/obrigat.*efd/i, /efd.*obrigat/i, /in.cio.*normal/i])
+      : undefined;
     if (!companyCol || !regimeCol || !yearCol) continue; // dados sem o necessário
 
     for (const row of report.rows) {
@@ -74,6 +90,8 @@ export function detectRegimeTransitions(
         year,
         regime: classify(raw, opts),
         rawRegime: raw,
+        dateSaida: saidaCol ? (row[saidaCol] ?? '').trim() : undefined,
+        dateEfd: efdCol ? (row[efdCol] ?? '').trim() : undefined,
       });
     }
   }
@@ -102,12 +120,18 @@ export function detectRegimeTransitions(
     // Dados de exibição: usa a observação mais recente disponível.
     const latest = [...obs].sort((a, b) => b.year - a.year)[0];
 
+    // Datas: usa as explícitas se existirem; senão deriva dos anos (aproximação).
+    const explicitSaida = obs.map((o) => o.dateSaida).find((v) => v && v.trim());
+    const explicitEfd = obs.map((o) => o.dateEfd).find((v) => v && v.trim());
+
     transitions.push({
       cnpj: company,
       razaoSocial: latest.razao,
       cce: latest.cce,
       ultimoAnoSimples: String(ultimoAnoSimples),
       primeiroAnoNormal: String(primeiroAnoNormal),
+      dataSaidaSimples: explicitSaida ?? `31/12/${ultimoAnoSimples}`,
+      dataObrigatoriedadeEFD: explicitEfd ?? `01/01/${primeiroAnoNormal}`,
       linhaDoTempo: timeline(obs),
     });
   }
@@ -117,6 +141,23 @@ export function detectRegimeTransitions(
     (a, b) =>
       a.primeiroAnoNormal.localeCompare(b.primeiroAnoNormal) || a.cnpj.localeCompare(b.cnpj),
   );
+}
+
+/** Normaliza um identificador (CNPJ/CCE) para casamento: só dígitos. */
+export function normalizeKey(value: string): string {
+  return (value ?? '').replace(/\D/g, '');
+}
+
+/** Indexa as transições por identificador normalizado (dígitos), p/ join. */
+export function transitionsByCompany(
+  transitions: RegimeTransition[],
+): Map<string, RegimeTransition> {
+  const map = new Map<string, RegimeTransition>();
+  for (const t of transitions) {
+    const k = normalizeKey(t.cnpj);
+    if (k) map.set(k, t);
+  }
+  return map;
 }
 
 function classify(value: string, opts: RegimeOptions): Observation['regime'] {
