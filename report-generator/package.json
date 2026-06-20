@@ -8,6 +8,7 @@
     "build": "tsc",
     "start": "tsx src/index.ts",
     "start:mock": "MODE=mock tsx src/index.ts",
+    "chrome": "node scripts/start-chrome.mjs",
     "inspect": "tsx src/inspect.ts",
     "typecheck": "tsc --noEmit"
   },

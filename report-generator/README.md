@@ -6,19 +6,35 @@ Geração de relatórios em **lote** por CCE a partir do **SAP BusinessObjects (
 
 Há **um único documento WebI** com prompts; no painel **"Entrada de Prompt do Usuário"** informa-se o **CCE** no campo **"Inserir CCE:"** e clica-se em **"Executar"**. Surge **"Recuperando dados"** durante o render (some quando conclui). A automação mira por **texto/rótulo** (PT-BR), pois os ids do WebI DHTML são dinâmicos, e varre os **iframes** da página.
 
-## Executar no Google Chrome (recomendado: conectar ao Chrome já logado)
+## Executar no Google Chrome (passo a passo)
 
-Como você já acessa o portal logado, o caminho mais estável é conectar ao seu Chrome via porta de depuração e reaproveitar a sessão/relatório abertos:
+Como você já acessa o portal logado, o caminho mais estável é conectar ao seu Chrome via porta de depuração e reaproveitar a sessão/relatório abertos.
 
 ```bash
-# 1) Feche o Chrome e reabra com a porta de depuração:
-#    Linux:   google-chrome --remote-debugging-port=9222
-#    Windows: "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222
-#    macOS:   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --remote-debugging-port=9222
-# 2) Faça login no portal e abra o relatório.
-# 3) No .env: WEBI_CHROME_CDP=http://localhost:9222
+cd report-generator
+npm install
+npx playwright install chromium   # só p/ o driver do Playwright
+
+# 1) Abre o Chrome com porta de depuração + perfil dedicado (persiste o login):
+npm run chrome
+#    -> faça login no portal e abra o relatório nessa janela.
+
+# 2) Configure (uma vez):
+cp .env.example .env                            # já vem WEBI_CHROME_CDP=http://localhost:9222
+cp config/cces.example.json config/cces.json    # ponha os CCEs reais (ex.: 108060349)
+
+# 3) Descubra/confirme os seletores reais da tela:
+npm run inspect          # despeja os controles de todos os iframes + screenshot
+
+# 4) Rode o lote:
 npm start
 ```
+
+> Se `npm run chrome` não achar o Chrome, defina `CHROME_PATH` com o caminho do executável.
+
+### Capturar o diálogo de "Exportar"
+
+Para finalizar a exportação em Excel, **abra o diálogo de Exportar na janela do Chrome** (clique em Exportar e escolha Excel, sem confirmar) e então rode `npm run inspect` — ele despeja os rótulos/controles do diálogo aberto. Ajuste `SEL_EXPORT_FORMAT_TEXT` e `SEL_EXPORT_CONFIRM_TEXT` no `.env` conforme a saída.
 
 Alternativa (sem CDP): deixe `WEBI_CHROME_CDP` vazio — o script **lança** um Chrome novo (`channel: chrome`) e faz login com `WEBI_USERNAME`/`WEBI_PASSWORD`.
 
