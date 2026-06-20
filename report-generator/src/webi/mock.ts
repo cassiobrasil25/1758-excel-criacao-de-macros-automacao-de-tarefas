@@ -26,14 +26,22 @@ export class MockSource implements ReportSource {
       throw new Error(`(mock) falha simulada de export para o CCE ${cce.id}`);
     }
 
-    const columns = ['CCE', 'Ano', 'Razao Social', 'Saldo Credor', 'Movimento Bloco C'];
-    const rowCount = 3 + (hash(cce.id) % 3); // 3..5 linhas determinísticas
-    const rows = Array.from({ length: rowCount }, (_, i) => ({
+    const columns = ['CCE', 'CNPJ', 'Razao Social', 'Ano', 'Tipo Enquadramento', 'Saldo Credor'];
+    const h = hash(cce.id);
+    const cnpj = formatCnpj(h);
+    const years = [2022, 2023, 2024, 2025];
+    // 1 em cada 3 empresas NÃO migra (fica sempre no Simples); as demais migram
+    // do Simples para o Normal a partir de um ano de transição determinístico.
+    const migra = h % 3 !== 0;
+    const anoTransicao = [2023, 2024, 2025][h % 3];
+
+    const rows = years.map((ano) => ({
       CCE: cce.id,
-      Ano: String(2022 + i),
-      'Razao Social': `Contribuinte ${((hash(cce.id) + i) % 9) + 1}`,
-      'Saldo Credor': (500 + ((hash(cce.id) + i * 13) % 1500)).toFixed(2),
-      'Movimento Bloco C': String(100 + ((hash(cce.id) + i * 7) % 400)),
+      CNPJ: cnpj,
+      'Razao Social': `Empresa ${cce.id} LTDA`,
+      Ano: String(ano),
+      'Tipo Enquadramento': migra && ano >= anoTransicao ? 'Normal' : 'Simples Nacional',
+      'Saldo Credor': (500 + ((h + ano) % 1500)).toFixed(2),
     }));
 
     const filePath = path.join(this.rawDir, `${cce.id}.xlsx`);
@@ -54,4 +62,10 @@ function hash(s: string): number {
   let h = 0;
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
   return h;
+}
+
+/** CNPJ sintético determinístico (apenas para o mock). */
+function formatCnpj(h: number): string {
+  const d = String(h).padStart(14, '0').slice(0, 14);
+  return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12, 14)}`;
 }

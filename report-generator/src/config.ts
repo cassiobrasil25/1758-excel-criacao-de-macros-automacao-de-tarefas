@@ -48,6 +48,14 @@ export interface AppConfig {
   consolidatedDir: string;
   /** Aba do .xlsx exportado a parsear (vazio = primeira aba). */
   exportSheet: string;
+  /** Configuração da análise de transição de regime (Simples -> Normal). */
+  regime: {
+    regimeField: string;
+    companyKey: string;
+    yearField: string;
+    simplesPattern: RegExp;
+    normalPattern: RegExp;
+  };
   cces: CCE[];
   webi: {
     baseUrl: string;
@@ -100,6 +108,13 @@ export function loadConfig(): AppConfig {
     logsDir: path.join(runtimeDir, 'logs'),
     consolidatedDir: path.join(runtimeDir, 'consolidated'),
     exportSheet: process.env.WEBI_EXPORT_SHEET ?? 'EFD_MOV',
+    regime: {
+      regimeField: process.env.REGIME_FIELD ?? 'Tipo Enquadramento',
+      companyKey: process.env.REGIME_COMPANY_KEY ?? 'CNPJ',
+      yearField: process.env.REGIME_YEAR_FIELD ?? 'Ano',
+      simplesPattern: new RegExp(process.env.REGIME_SIMPLES_PATTERN ?? 'simples', 'i'),
+      normalPattern: new RegExp(process.env.REGIME_NORMAL_PATTERN ?? 'normal', 'i'),
+    },
     cces: loadCCEs(),
     webi: {
       baseUrl:

@@ -7,6 +7,8 @@ import {
   buildConsolidatedXlsx,
   writeConsolidatedMd,
 } from './output/consolidated';
+import { detectRegimeTransitions } from './transform/regime';
+import { writeRegimeTransitionReport } from './output/regime-report';
 import { MockSource } from './webi/mock';
 import { WebiBrowserSource } from './webi/browser';
 import type { NormalizedReport, ReportSource, RunResult } from './types';
@@ -72,12 +74,17 @@ async function main(): Promise<void> {
   const csvPath = buildConsolidatedCSVs(reports, cfg.consolidatedDir);
   const mdPath = writeConsolidatedMd(results, cfg.consolidatedDir);
 
+  // Análise: empresas que saíram do Simples Nacional para o Regime Normal (EFD).
+  const transitions = detectRegimeTransitions(reports, cfg.regime);
+  const regimeReport = await writeRegimeTransitionReport(transitions, cfg.consolidatedDir);
+
   const ok = results.filter((r) => r.status === 'success').length;
   const fail = results.length - ok;
   log.info(`Lote concluído | sucesso=${ok} | falha=${fail}`);
   log.info(`Consolidado XLSX: ${xlsxPath}`);
   log.info(`Consolidado CSV:  ${csvPath}`);
   log.info(`Consolidado MD:   ${mdPath}`);
+  log.info(`Transição Simples→Normal: ${transitions.length} empresa(s) | ${regimeReport.xlsx}`);
 
   // Código de saída != 0 se houve qualquer falha (útil para CI/agendadores).
   if (fail > 0) process.exitCode = 1;

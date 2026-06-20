@@ -66,6 +66,17 @@ src/
 
 Saídas vão para `runtime/` (ignorado pelo git): `raw/`, `reports/`, `screenshots/`, `logs/`, `consolidated/`.
 
+### Relatório: Simples Nacional → Regime Normal (EFD)
+
+Ao final do lote é gerada automaticamente a análise das **empresas que eram do
+Simples Nacional e passaram para o Regime Normal** (logo, obrigadas à EFD):
+`runtime/consolidated/transicao-simples-normal.xlsx` (e `.md`).
+
+Critério: por **CNPJ**, comparando o regime na coluna **"Tipo Enquadramento"**
+ao longo dos **anos** — a empresa entra no relatório se teve Simples num ano e
+Normal num ano posterior. Campos e padrões são configuráveis via `REGIME_*` no
+`.env` (coluna do regime, identificador, coluna de ano, regex de cada regime).
+
 ## Como usar
 
 ```bash
