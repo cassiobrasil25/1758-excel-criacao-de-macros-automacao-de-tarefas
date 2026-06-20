@@ -28,6 +28,11 @@ export interface WebiSelectors {
   exportButtonText: string;
   /** Texto da opção de formato Excel no diálogo de exportação (ex.: "Excel"). */
   exportFormatText: string;
+  /**
+   * Texto da opção "priorizar processamento fácil dos dados" no diálogo de
+   * exportação (dados mais limpos para parse). Vazio = não clicar.
+   */
+  exportPriorityText: string;
   /** Texto do botão que confirma a exportação no diálogo (ex.: "Exportar"). */
   exportConfirmText: string;
 }
@@ -94,7 +99,7 @@ export function loadConfig(): AppConfig {
     screenshotsDir: path.join(runtimeDir, 'screenshots'),
     logsDir: path.join(runtimeDir, 'logs'),
     consolidatedDir: path.join(runtimeDir, 'consolidated'),
-    exportSheet: process.env.WEBI_EXPORT_SHEET ?? '',
+    exportSheet: process.env.WEBI_EXPORT_SHEET ?? 'EFD_MOV',
     cces: loadCCEs(),
     webi: {
       baseUrl:
@@ -117,6 +122,7 @@ export function loadConfig(): AppConfig {
         retrievingText: process.env.SEL_RETRIEVING_TEXT ?? 'Recuperando dados',
         exportButtonText: process.env.SEL_EXPORT_TEXT ?? 'Exportar',
         exportFormatText: process.env.SEL_EXPORT_FORMAT_TEXT ?? 'Excel',
+        exportPriorityText: process.env.SEL_EXPORT_PRIORITY_TEXT ?? '',
         exportConfirmText: process.env.SEL_EXPORT_CONFIRM_TEXT ?? 'Exportar',
       },
     },

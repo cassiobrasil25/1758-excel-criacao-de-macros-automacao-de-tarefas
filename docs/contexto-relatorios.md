@@ -9,6 +9,9 @@
 
 ---
 
+> Conhecimento detalhado do WebI/SEFAZ-GO (interfaces, prompts, exportação em
+> Excel, glossário PT-BR): ver [`webi-sefaz-go.md`](webi-sefaz-go.md).
+
 ## Ambiente / modelo de dados
 
 - **Portal:** SEFAZ-GO — BI Launch Pad em

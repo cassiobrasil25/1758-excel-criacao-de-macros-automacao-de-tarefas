@@ -137,6 +137,11 @@ export class WebiBrowserSource implements ReportSource {
     frame = await this.findFrameWith(sel.exportFormatText).catch(() => frame);
     await this.clickByText(frame, sel.exportFormatText).catch(() => undefined);
 
+    // Prioriza "processamento fácil dos dados" (dados mais limpos p/ parse), se configurado.
+    if (sel.exportPriorityText) {
+      await this.clickByText(frame, sel.exportPriorityText).catch(() => undefined);
+    }
+
     // Confirma e captura o download.
     const downloadPromise = page.waitForEvent('download');
     await this.clickByText(frame, sel.exportConfirmText);
