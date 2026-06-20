@@ -46,10 +46,19 @@ export function detectRegimeTransitions(
 
   for (const report of reports) {
     const cols = report.columns;
-    const companyCol = resolveCol(cols, opts.companyKey, [/cnpj/i, /cce/i]);
-    const regimeCol = resolveCol(cols, opts.regimeField, [/enquadr/i, /regime/i]);
-    const yearCol = resolveCol(cols, opts.yearField, [/^ano\b/i, /ano/i]);
-    const razaoCol = resolveCol(cols, 'Razao Social', [/raz.o\s*social/i, /nome\s*empres/i]);
+    const companyCol = resolveCol(cols, opts.companyKey, [
+      /cnpj/i,
+      /n[uú]mero\s*de\s*inscri/i,
+      /inscri/i,
+      /cce/i,
+    ]);
+    const regimeCol = resolveCol(cols, opts.regimeField, [/enquadr/i, /regime/i, /situa.*tribut/i]);
+    const yearCol = resolveYearCol(cols, opts.yearField);
+    const razaoCol = resolveCol(cols, 'Razao Social', [
+      /raz.o\s*social/i,
+      /nome\s*empres/i,
+      /nome\s*fantasia/i,
+    ]);
     if (!companyCol || !regimeCol || !yearCol) continue; // dados sem o necessário
 
     for (const row of report.rows) {
@@ -125,6 +134,19 @@ function resolveCol(columns: string[], preferred: string, regexes: RegExp[]): st
     if (c) return c;
   }
   return undefined;
+}
+
+/**
+ * Resolve a coluna do ano preferindo "Ano (Referência)" e evitando
+ * "Ano/Mês (Referência)" (que também contém "Ano").
+ */
+function resolveYearCol(columns: string[], preferred: string): string | undefined {
+  if (columns.includes(preferred)) return preferred;
+  return (
+    columns.find((c) => /^ano\s*\(ref/i.test(c)) ??
+    columns.find((c) => /^ano\s*\(/i.test(c)) ??
+    columns.find((c) => /\bano\b/i.test(c) && !c.includes('/'))
+  );
 }
 
 function parseYear(value: string | undefined): number | undefined {
