@@ -1,6 +1,7 @@
 import { CONCURRENCY, ensureDirs, loadConfig } from './config';
 import { RunLogger } from './logger';
-import { parseAndNormalize } from './transform/parse';
+import { parseAllSheets } from './transform/parse';
+import type { CCE, NormalizedReport, ReportSource, RunResult } from './types';
 import { writeIndividualMd } from './output/individual';
 import {
   buildConsolidatedCSVs,
@@ -14,7 +15,6 @@ import { writeEfdObligationReport } from './output/efd-report';
 import { buildLevantamentoReport, type DateInfo } from './output/levantamento-efd';
 import { MockSource } from './webi/mock';
 import { WebiBrowserSource } from './webi/browser';
-import type { NormalizedReport, ReportSource, RunResult } from './types';
 
 /**
  * MODO LOTE — EXECUÇÃO EM SEQUÊNCIA (OBRIGATÓRIO)
@@ -37,7 +37,8 @@ async function main(): Promise<void> {
     cfg.mode === 'mock' ? new MockSource(cfg.rawDir) : new WebiBrowserSource(cfg);
 
   const results: RunResult[] = [];
-  const reports: NormalizedReport[] = [];
+  const reports: NormalizedReport[] = []; // aba primária (relatório individual + consolidação)
+  const analysisReports: NormalizedReport[] = []; // todas as abas (análises regime/EFD)
 
   await source.open();
   try {
@@ -45,7 +46,10 @@ async function main(): Promise<void> {
       try {
         await source.runReportForCCE(cce); // (1) refresh/render completo
         const raw = await source.exportRaw(cce); // (2) export (.xlsx) presente em disco
-        const report = await parseAndNormalize(raw, cfg.exportSheet); // (3) parse + normalização
+        const sheets = await parseAllSheets(raw); // (3) parse de TODAS as abas
+        analysisReports.push(...sheets);
+        const report =
+          sheets.find((s) => s.sheet === cfg.exportSheet) ?? sheets[0] ?? emptyReport(cce);
         const individualReportPath = writeIndividualMd(report, cfg.reportsDir); // (4) relatório individual
 
         reports.push(report);
@@ -78,11 +82,11 @@ async function main(): Promise<void> {
   const mdPath = writeConsolidatedMd(results, cfg.consolidatedDir);
 
   // Análise: empresas que saíram do Simples Nacional para o Regime Normal (EFD).
-  const transitions = detectRegimeTransitions(reports, cfg.regime);
+  const transitions = detectRegimeTransitions(analysisReports, cfg.regime);
   const regimeReport = await writeRegimeTransitionReport(transitions, cfg.consolidatedDir);
 
   // Análise: obrigatoriedade da EFD (campo OBRIGADO por Ano/Mês).
-  const efdMap = detectEfdObligation(reports, cfg.efd);
+  const efdMap = detectEfdObligation(analysisReports, cfg.efd);
   const efdReport = await writeEfdObligationReport([...efdMap.values()], cfg.consolidatedDir);
 
   // Datas por empresa: saída do Simples (regime) + obrigatoriedade EFD (campo
@@ -129,6 +133,10 @@ async function main(): Promise<void> {
 
   // Código de saída != 0 se houve qualquer falha (útil para CI/agendadores).
   if (fail > 0) process.exitCode = 1;
+}
+
+function emptyReport(cce: CCE): NormalizedReport {
+  return { cce, columns: [], rows: [], generatedAt: new Date().toISOString() };
 }
 
 main().catch((err) => {

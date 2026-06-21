@@ -15,10 +15,20 @@ export async function readXlsx(
   await wb.xlsx.readFile(filePath);
   const ws = sheet ? wb.getWorksheet(sheet) : wb.worksheets[0];
   if (!ws) return { columns: [], rows: [] };
+  const { columns, rows } = extractSheet(ws);
+  return { columns, rows };
+}
 
+/** Lê TODAS as abas de um .xlsx (1ª linha = cabeçalho em cada uma). */
+export async function readXlsxAllSheets(filePath: string): Promise<SheetData[]> {
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.readFile(filePath);
+  return wb.worksheets.map((ws) => ({ name: ws.name, ...extractSheet(ws) }));
+}
+
+function extractSheet(ws: ExcelJS.Worksheet): { columns: string[]; rows: Record<string, string>[] } {
   let columns: string[] = [];
   const rows: Record<string, string>[] = [];
-
   ws.eachRow((row, rowNumber) => {
     const values = (row.values as unknown[]).slice(1).map(cellToString);
     if (rowNumber === 1) {
@@ -31,7 +41,6 @@ export async function readXlsx(
       rows.push(obj);
     }
   });
-
   return { columns, rows };
 }
 

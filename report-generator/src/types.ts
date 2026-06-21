@@ -25,12 +25,14 @@ export interface RawExport {
 /** Uma linha normalizada (colunas → valores). */
 export type NormalizedRow = Record<string, string>;
 
-/** Dados normalizados de um CCE. */
+/** Dados normalizados de um CCE (de uma aba do export). */
 export interface NormalizedReport {
   cce: CCE;
   columns: string[];
   rows: NormalizedRow[];
   generatedAt: string;
+  /** Nome da aba (worksheet) de origem, quando aplicável. */
+  sheet?: string;
 }
 
 /** Resultado do processamento de um CCE no lote. */

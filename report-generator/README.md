@@ -83,6 +83,14 @@ explícitas, configure `REGIME_DATE_SAIDA_SIMPLES_FIELD` / `REGIME_DATE_EFD_FIEL
 senão, as datas são derivadas dos anos (31/12 do último ano Simples; 01/01 do
 primeiro ano Normal).
 
+### Múltiplas abas / provedores
+
+O export pode conter **várias abas** (um provedor por aba — ex.: regime em uma,
+obrigatoriedade EFD em outra). O pipeline lê **todas as abas**: a aba primária
+(`WEBI_EXPORT_SHEET`) alimenta o relatório individual e a consolidação, e
+**todas as abas** alimentam as análises (regime e EFD), que se cruzam por
+**CNPJ** entre abas distintas.
+
 ### Relatório: Obrigatoriedade da EFD
 
 A partir do campo **OBRIGADO** (S/N) por **Ano/Mês (Referência)** do relatório
