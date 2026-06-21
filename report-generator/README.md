@@ -83,6 +83,16 @@ explícitas, configure `REGIME_DATE_SAIDA_SIMPLES_FIELD` / `REGIME_DATE_EFD_FIEL
 senão, as datas são derivadas dos anos (31/12 do último ano Simples; 01/01 do
 primeiro ano Normal).
 
+### Checkpoint / retomada (lotes grandes)
+
+Cada CCE concluído é registrado em `runtime/checkpoint.jsonl` (append, à prova de
+queda). Se o lote cair, basta rodar `npm start` de novo: os CCEs já concluídos
+com sucesso são **retomados do checkpoint** (reusando o `.xlsx` bruto em disco,
+sem rebater no portal) e os que **falharam são reprocessados**. O log mostra o
+progresso `[i/total]` e, ao final, `processados`/`retomados`. Para reprocessar
+tudo do zero, apague o `runtime/checkpoint.jsonl` ou use `CHECKPOINT_RESUME=false`.
+O navegador só é aberto se houver CCE a buscar (abertura lazy).
+
 ### Múltiplas abas / provedores
 
 O export pode conter **várias abas** (um provedor por aba — ex.: regime em uma,

@@ -46,6 +46,10 @@ export interface AppConfig {
   screenshotsDir: string;
   logsDir: string;
   consolidatedDir: string;
+  /** Arquivo de checkpoint (JSONL) para retomada do lote. */
+  checkpointPath: string;
+  /** Se true, retoma do checkpoint (pula CCEs já concluídos com sucesso). */
+  resume: boolean;
   /** Aba do .xlsx exportado a parsear (vazio = primeira aba). */
   exportSheet: string;
   /** Limite de abas por CCE no Excel consolidado (lotes grandes). */
@@ -124,6 +128,8 @@ export function loadConfig(): AppConfig {
     screenshotsDir: path.join(runtimeDir, 'screenshots'),
     logsDir: path.join(runtimeDir, 'logs'),
     consolidatedDir: path.join(runtimeDir, 'consolidated'),
+    checkpointPath: process.env.CHECKPOINT_PATH ?? path.join(runtimeDir, 'checkpoint.jsonl'),
+    resume: process.env.CHECKPOINT_RESUME !== 'false',
     exportSheet: process.env.WEBI_EXPORT_SHEET ?? 'EFD_MOV',
     consolidatedMaxSheets: Number(process.env.CONSOLIDATED_MAX_SHEETS ?? 50),
     regime: {

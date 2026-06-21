@@ -1,5 +1,8 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import { CONCURRENCY, ensureDirs, loadConfig } from './config';
 import { RunLogger } from './logger';
+import { Checkpoint } from './checkpoint';
 import { parseAllSheets } from './transform/parse';
 import type { CCE, NormalizedReport, ReportSource, RunResult } from './types';
 import { writeIndividualMd } from './output/individual';
@@ -40,40 +43,91 @@ async function main(): Promise<void> {
   const reports: NormalizedReport[] = []; // aba primária (relatório individual + consolidação)
   const analysisReports: NormalizedReport[] = []; // todas as abas (análises regime/EFD)
 
-  await source.open();
+  // Checkpoint / retomada: pula CCEs já concluídos com sucesso (reaproveitando o
+  // .xlsx bruto em disco) e reprocessa os que falharam.
+  const checkpoint = new Checkpoint(cfg.checkpointPath);
+  const prior = cfg.resume ? checkpoint.load() : new Map();
+  const total = cfg.cces.length;
+  let opened = false;
+  let retomados = 0;
+  let processados = 0;
+  const ensureOpen = async (): Promise<void> => {
+    if (!opened) {
+      await source.open();
+      opened = true;
+    }
+  };
+
+  const pickPrimary = (sheets: NormalizedReport[], cce: CCE): NormalizedReport =>
+    sheets.find((s) => s.sheet === cfg.exportSheet) ?? sheets[0] ?? emptyReport(cce);
+
   try {
+    let i = 0;
     for (const cce of cfg.cces) {
+      i++;
+      const rawPath = path.join(cfg.rawDir, `${cce.id}.xlsx`);
+      const priorEntry = prior.get(cce.id);
+
+      // Retomada: já concluído com sucesso e .xlsx bruto presente -> reusa.
+      if (cfg.resume && priorEntry?.status === 'success' && fs.existsSync(rawPath)) {
+        try {
+          const sheets = await parseAllSheets({ cce, filePath: rawPath });
+          analysisReports.push(...sheets);
+          const report = pickPrimary(sheets, cce);
+          reports.push(report);
+          results.push({
+            cce,
+            status: 'success',
+            rowCount: report.rows.length,
+            individualReportPath: priorEntry.individualReportPath,
+          });
+          retomados++;
+          log.info(`[${i}/${total}] CCE ${cce.id}: retomado do checkpoint (${report.rows.length} linhas)`);
+          continue;
+        } catch {
+          /* falhou ao reusar o bruto -> cai no fluxo normal de busca */
+        }
+      }
+
       try {
+        log.info(`[${i}/${total}] CCE ${cce.id}: processando...`);
+        await ensureOpen();
         await source.runReportForCCE(cce); // (1) refresh/render completo
         const raw = await source.exportRaw(cce); // (2) export (.xlsx) presente em disco
         const sheets = await parseAllSheets(raw); // (3) parse de TODAS as abas
         analysisReports.push(...sheets);
-        const report =
-          sheets.find((s) => s.sheet === cfg.exportSheet) ?? sheets[0] ?? emptyReport(cce);
+        const report = pickPrimary(sheets, cce);
         const individualReportPath = writeIndividualMd(report, cfg.reportsDir); // (4) relatório individual
 
         reports.push(report);
-        results.push({
-          cce,
+        results.push({ cce, status: 'success', rowCount: report.rows.length, individualReportPath });
+        checkpoint.append({
+          cce: cce.id,
           status: 'success',
           rowCount: report.rows.length,
           individualReportPath,
+          rawPath: raw.filePath,
+          at: new Date().toISOString(),
         });
+        processados++;
         log.logSuccess(cce, report.rows.length);
       } catch (err) {
         const screenshotPath = await source.screenshotError(cce);
         log.logFailure(cce, err);
-        results.push({
-          cce,
+        const error = err instanceof Error ? err.message : String(err);
+        results.push({ cce, status: 'failure', error, screenshotPath });
+        checkpoint.append({
+          cce: cce.id,
           status: 'failure',
-          error: err instanceof Error ? err.message : String(err),
+          error,
           screenshotPath,
+          at: new Date().toISOString(),
         });
         continue; // não encerra o lote
       }
     }
   } finally {
-    await source.close();
+    if (opened) await source.close();
   }
 
   // Consolidação final
@@ -113,7 +167,9 @@ async function main(): Promise<void> {
 
   const ok = results.filter((r) => r.status === 'success').length;
   const fail = results.length - ok;
-  log.info(`Lote concluído | sucesso=${ok} | falha=${fail}`);
+  log.info(
+    `Lote concluído | sucesso=${ok} | falha=${fail} | processados=${processados} | retomados=${retomados}`,
+  );
   log.info(`Consolidado XLSX: ${xlsxPath}`);
   log.info(`Consolidado CSV:  ${csvPath}`);
   log.info(`Consolidado MD:   ${mdPath}`);
