@@ -77,7 +77,7 @@ async function main(): Promise<void> {
   }
 
   // Consolidação final
-  const xlsxPath = await buildConsolidatedXlsx(reports, cfg.consolidatedDir);
+  const xlsxPath = await buildConsolidatedXlsx(reports, cfg.consolidatedDir, cfg.consolidatedMaxSheets);
   const csvPath = buildConsolidatedCSVs(reports, cfg.consolidatedDir);
   const mdPath = writeConsolidatedMd(results, cfg.consolidatedDir);
 

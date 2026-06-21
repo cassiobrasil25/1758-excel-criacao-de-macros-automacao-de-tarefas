@@ -17,16 +17,21 @@ export function buildConsolidatedCSVs(reports: NormalizedReport[], consolidatedD
 
 /**
  * (final) buildConsolidatedXlsx — Excel consolidado: uma aba "Consolidado" com
- * todas as linhas + uma aba por CCE. Retorna o caminho gerado.
+ * todas as linhas + uma aba por CCE. Para evitar milhares de worksheets em
+ * lotes grandes, as abas por CCE só são criadas até `maxPerCceSheets`.
+ * Retorna o caminho gerado.
  */
 export async function buildConsolidatedXlsx(
   reports: NormalizedReport[],
   consolidatedDir: string,
+  maxPerCceSheets = 50,
 ): Promise<string> {
   const { columns, rows } = flatten(reports);
   const sheets: SheetData[] = [{ name: 'Consolidado', columns, rows }];
-  for (const r of reports) {
-    sheets.push({ name: r.cce.id, columns: r.columns, rows: r.rows });
+  if (reports.length <= maxPerCceSheets) {
+    for (const r of reports) {
+      sheets.push({ name: r.cce.id, columns: r.columns, rows: r.rows });
+    }
   }
   const file = path.join(consolidatedDir, 'consolidado.xlsx');
   await writeXlsx(file, sheets);

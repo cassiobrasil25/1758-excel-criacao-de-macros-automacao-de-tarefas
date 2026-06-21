@@ -48,6 +48,8 @@ export interface AppConfig {
   consolidatedDir: string;
   /** Aba do .xlsx exportado a parsear (vazio = primeira aba). */
   exportSheet: string;
+  /** Limite de abas por CCE no Excel consolidado (lotes grandes). */
+  consolidatedMaxSheets: number;
   /** Configuração da análise de transição de regime (Simples -> Normal). */
   regime: {
     regimeField: string;
@@ -123,6 +125,7 @@ export function loadConfig(): AppConfig {
     logsDir: path.join(runtimeDir, 'logs'),
     consolidatedDir: path.join(runtimeDir, 'consolidated'),
     exportSheet: process.env.WEBI_EXPORT_SHEET ?? 'EFD_MOV',
+    consolidatedMaxSheets: Number(process.env.CONSOLIDATED_MAX_SHEETS ?? 50),
     regime: {
       regimeField: process.env.REGIME_FIELD ?? 'Tipo Enquadramento',
       companyKey: process.env.REGIME_COMPANY_KEY ?? 'CNPJ',
