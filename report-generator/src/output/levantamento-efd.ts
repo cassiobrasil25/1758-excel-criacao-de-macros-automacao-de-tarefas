@@ -1,10 +1,16 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { readXlsx, writeXlsx } from '../xlsx';
-import { normalizeKey, type RegimeTransition } from '../transform/regime';
+import { normalizeKey } from '../transform/regime';
 
 const COL_SAIDA = 'Data Saida Simples Nacional';
 const COL_EFD = 'Data Obrigatoriedade EFD';
+
+/** Datas por empresa (indexadas por identificador normalizado em dígitos). */
+export interface DateInfo {
+  dataSaidaSimples: string;
+  dataObrigEFD: string;
+}
 
 export interface LevantamentoResult {
   xlsx: string;
@@ -23,7 +29,7 @@ export interface LevantamentoResult {
 export async function buildLevantamentoReport(
   sourcePath: string,
   joinKey: string,
-  byCompany: Map<string, RegimeTransition>,
+  byCompany: Map<string, DateInfo>,
   outDir: string,
   sheet?: string,
 ): Promise<LevantamentoResult | null> {
@@ -42,7 +48,7 @@ export async function buildLevantamentoReport(
     const info = key ? byCompany.get(key) : undefined;
     if (info) matched++;
     out[COL_SAIDA] = info?.dataSaidaSimples ?? '';
-    out[COL_EFD] = info?.dataObrigatoriedadeEFD ?? '';
+    out[COL_EFD] = info?.dataObrigEFD ?? '';
     return out;
   });
 

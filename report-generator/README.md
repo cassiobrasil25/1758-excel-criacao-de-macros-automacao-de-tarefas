@@ -83,6 +83,15 @@ explícitas, configure `REGIME_DATE_SAIDA_SIMPLES_FIELD` / `REGIME_DATE_EFD_FIEL
 senão, as datas são derivadas dos anos (31/12 do último ano Simples; 01/01 do
 primeiro ano Normal).
 
+### Relatório: Obrigatoriedade da EFD
+
+A partir do campo **OBRIGADO** (S/N) por **Ano/Mês (Referência)** do relatório
+"OBRIGATORIEDADE EFD", gera `runtime/consolidated/obrigatoriedade-efd.xlsx`,
+demonstrando os contribuintes **obrigados (S) ou não (N)** e, para os obrigados,
+o **primeiro período** e a **data de início** da obrigatoriedade (01/MM/AAAA).
+Essa data (real) alimenta a coluna *Data Obrigatoriedade EFD* do relatório do
+Levantamento. Configurável via `EFD_*` no `.env`.
+
 ### Relatório do Levantamento (planilha + as duas datas)
 
 Enriquece uma planilha de origem (ex.: *Levantamento de Autos*) repassando

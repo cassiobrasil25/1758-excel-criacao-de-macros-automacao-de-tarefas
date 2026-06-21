@@ -26,7 +26,16 @@ export class MockSource implements ReportSource {
       throw new Error(`(mock) falha simulada de export para o CCE ${cce.id}`);
     }
 
-    const columns = ['CCE', 'CNPJ', 'Razao Social', 'Ano', 'Tipo Enquadramento', 'Saldo Credor'];
+    const columns = [
+      'CCE',
+      'CNPJ',
+      'Razao Social',
+      'Ano',
+      'Ano/Mês (Referência)',
+      'Tipo Enquadramento',
+      'OBRIGADO',
+      'Saldo Credor',
+    ];
     const h = hash(cce.id);
     const cnpj = formatCnpj(h);
     const years = [2022, 2023, 2024, 2025];
@@ -35,14 +44,19 @@ export class MockSource implements ReportSource {
     const migra = h % 3 !== 0;
     const anoTransicao = [2023, 2024, 2025][h % 3];
 
-    const rows = years.map((ano) => ({
-      CCE: cce.id,
-      CNPJ: cnpj,
-      'Razao Social': `Empresa ${cce.id} LTDA`,
-      Ano: String(ano),
-      'Tipo Enquadramento': migra && ano >= anoTransicao ? 'Normal' : 'Simples Nacional',
-      'Saldo Credor': (500 + ((h + ano) % 1500)).toFixed(2),
-    }));
+    const rows = years.map((ano) => {
+      const normal = migra && ano >= anoTransicao;
+      return {
+        CCE: cce.id,
+        CNPJ: cnpj,
+        'Razao Social': `Empresa ${cce.id} LTDA`,
+        Ano: String(ano),
+        'Ano/Mês (Referência)': `${ano}01`,
+        'Tipo Enquadramento': normal ? 'Normal' : 'Simples Nacional',
+        OBRIGADO: normal ? 'S' : 'N',
+        'Saldo Credor': (500 + ((h + ano) % 1500)).toFixed(2),
+      };
+    });
 
     const filePath = path.join(this.rawDir, `${cce.id}.xlsx`);
     await writeXlsx(filePath, [{ name: 'EFD_MOV', columns, rows }]);

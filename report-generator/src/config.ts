@@ -64,6 +64,13 @@ export interface AppConfig {
     joinKey: string;
     sheet: string;
   };
+  /** Análise de obrigatoriedade da EFD (campo OBRIGADO por Ano/Mês). */
+  efd: {
+    obrigadoField: string;
+    periodField: string;
+    companyKey: string;
+    yesPattern: RegExp;
+  };
   cces: CCE[];
   webi: {
     baseUrl: string;
@@ -131,6 +138,12 @@ export function loadConfig(): AppConfig {
         path.resolve(__dirname, '..', 'config', 'levantamento.xlsx'),
       joinKey: process.env.LEVANTAMENTO_JOIN_KEY ?? 'CNPJ',
       sheet: process.env.LEVANTAMENTO_SHEET ?? '',
+    },
+    efd: {
+      obrigadoField: process.env.EFD_OBRIGADO_FIELD ?? 'OBRIGADO',
+      periodField: process.env.EFD_PERIOD_FIELD ?? 'Ano/Mês (Referência)',
+      companyKey: process.env.EFD_COMPANY_KEY ?? 'CNPJ',
+      yesPattern: new RegExp(process.env.EFD_YES_PATTERN ?? '^s', 'i'),
     },
     cces: loadCCEs(),
     webi: {

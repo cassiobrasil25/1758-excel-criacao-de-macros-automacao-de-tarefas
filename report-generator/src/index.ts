@@ -8,8 +8,10 @@ import {
   writeConsolidatedMd,
 } from './output/consolidated';
 import { detectRegimeTransitions, transitionsByCompany } from './transform/regime';
+import { detectEfdObligation } from './transform/efd-obrigatoriedade';
 import { writeRegimeTransitionReport } from './output/regime-report';
-import { buildLevantamentoReport } from './output/levantamento-efd';
+import { writeEfdObligationReport } from './output/efd-report';
+import { buildLevantamentoReport, type DateInfo } from './output/levantamento-efd';
 import { MockSource } from './webi/mock';
 import { WebiBrowserSource } from './webi/browser';
 import type { NormalizedReport, ReportSource, RunResult } from './types';
@@ -79,12 +81,28 @@ async function main(): Promise<void> {
   const transitions = detectRegimeTransitions(reports, cfg.regime);
   const regimeReport = await writeRegimeTransitionReport(transitions, cfg.consolidatedDir);
 
-  // Relatório do Levantamento: todas as colunas da planilha + as duas datas.
+  // Análise: obrigatoriedade da EFD (campo OBRIGADO por Ano/Mês).
+  const efdMap = detectEfdObligation(reports, cfg.efd);
+  const efdReport = await writeEfdObligationReport([...efdMap.values()], cfg.consolidatedDir);
+
+  // Datas por empresa: saída do Simples (regime) + obrigatoriedade EFD (campo
+  // OBRIGADO tem prioridade; senão usa a data derivada da transição de regime).
   const byCompany = transitionsByCompany(transitions);
+  const dateInfo = new Map<string, DateInfo>();
+  for (const [k, t] of byCompany) {
+    dateInfo.set(k, { dataSaidaSimples: t.dataSaidaSimples, dataObrigEFD: t.dataObrigatoriedadeEFD });
+  }
+  for (const [k, e] of efdMap) {
+    const cur = dateInfo.get(k) ?? { dataSaidaSimples: '', dataObrigEFD: '' };
+    if (e.obrigado && e.dataInicioObrigatoriedade) cur.dataObrigEFD = e.dataInicioObrigatoriedade;
+    dateInfo.set(k, cur);
+  }
+
+  // Relatório do Levantamento: todas as colunas da planilha + as duas datas.
   const levantamento = await buildLevantamentoReport(
     cfg.levantamento.sourcePath,
     cfg.levantamento.joinKey,
-    byCompany,
+    dateInfo,
     cfg.consolidatedDir,
     cfg.levantamento.sheet || undefined,
   );
@@ -96,6 +114,9 @@ async function main(): Promise<void> {
   log.info(`Consolidado CSV:  ${csvPath}`);
   log.info(`Consolidado MD:   ${mdPath}`);
   log.info(`Transição Simples→Normal: ${transitions.length} empresa(s) | ${regimeReport.xlsx}`);
+  log.info(
+    `Obrigatoriedade EFD: ${efdReport.obrigados}/${efdReport.total} obrigados | ${efdReport.xlsx}`,
+  );
   if (levantamento) {
     log.info(
       `Levantamento + datas: ${levantamento.matched}/${levantamento.totalRows} casados | ${levantamento.xlsx}`,
