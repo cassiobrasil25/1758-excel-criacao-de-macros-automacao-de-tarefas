@@ -80,6 +80,7 @@ export interface AppConfig {
   /** Auditoria 12.02 — rotatividade de estoque (EI + Entradas = EF + Saídas). */
   rotatividade: {
     companyKey: string;
+    ncmField: string;
     periodField: string;
     estoqueInicialField: string;
     comprasField: string;
@@ -166,6 +167,7 @@ export function loadConfig(): AppConfig {
     },
     rotatividade: {
       companyKey: process.env.ROTATIVIDADE_COMPANY_KEY ?? 'CCE',
+      ncmField: process.env.ROTATIVIDADE_NCM ?? 'NCM',
       periodField: process.env.ROTATIVIDADE_PERIOD_FIELD ?? 'Ano/Mês (Referência)',
       estoqueInicialField: process.env.ROTATIVIDADE_ESTOQUE_INICIAL ?? 'Estoque Inicial',
       comprasField: process.env.ROTATIVIDADE_COMPRAS ?? 'Compras',

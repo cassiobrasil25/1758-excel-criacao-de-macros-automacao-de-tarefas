@@ -5,6 +5,7 @@ import type { RotatividadeRow } from '../transform/rotatividade';
 
 const COLUMNS = [
   'CCE',
+  'NCM',
   'Razao Social',
   'Estoque Inicial',
   'Compras',
@@ -26,6 +27,7 @@ export async function writeRotatividadeReport(
 ): Promise<{ xlsx: string; md: string; total: number; divergentes: number }> {
   const sheetRows = rows.map((r) => ({
     CCE: r.cce,
+    NCM: r.ncm,
     'Razao Social': r.razaoSocial,
     'Estoque Inicial': num(r.estoqueInicial),
     Compras: num(r.compras),
@@ -50,12 +52,12 @@ function renderMd(rows: RotatividadeRow[], divergentes: number): string {
   const lines: string[] = [];
   lines.push('# Auditoria 12.02 — Rotatividade de Estoque');
   lines.push('');
-  lines.push('Por CCE (junta Estoque + ENTRADAS/Compras + SAÍDAS):');
+  lines.push('Por **CCE + NCM** (nível Analítico — junta Estoque + ENTRADAS/Compras + SAÍDAS):');
   lines.push('**CMV = Estoque Inicial + Compras − Estoque Final**, confrontado com as Saídas.');
   lines.push('No modelo EI + Compras = EF + Saídas, a diferença (CMV − Saídas) deveria ser 0.');
   lines.push('');
   lines.push(`- Gerado em: ${new Date().toISOString()}`);
-  lines.push(`- CCEs analisados: ${rows.length}`);
+  lines.push(`- Linhas (CCE+NCM) analisadas: ${rows.length}`);
   lines.push(`- Divergentes: ${divergentes} | OK: ${rows.filter((r) => r.status === 'OK').length} | Sem saídas p/ comparar: ${rows.filter((r) => r.status === 'CALCULADO').length}`);
   lines.push('');
   if (rows.length === 0) {
@@ -63,11 +65,11 @@ function renderMd(rows: RotatividadeRow[], divergentes: number): string {
     lines.push('');
     return lines.join('\n');
   }
-  lines.push('| CCE | Razão Social | Est. Inicial | Compras | Est. Final | CMV | Saídas | Diferença | Status |');
-  lines.push('| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |');
+  lines.push('| CCE | NCM | Razão Social | Est. Inicial | Compras | Est. Final | CMV | Saídas | Diferença | Status |');
+  lines.push('| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |');
   for (const r of rows) {
     lines.push(
-      `| ${r.cce} | ${esc(r.razaoSocial)} | ${num(r.estoqueInicial)} | ${num(r.compras)} | ${num(r.estoqueFinal)} | ${num(r.cmv)} | ${num(r.saidas)} | ${num(r.diferenca)} | ${r.status} |`,
+      `| ${r.cce} | ${r.ncm} | ${esc(r.razaoSocial)} | ${num(r.estoqueInicial)} | ${num(r.compras)} | ${num(r.estoqueFinal)} | ${num(r.cmv)} | ${num(r.saidas)} | ${num(r.diferenca)} | ${r.status} |`,
     );
   }
   lines.push('');

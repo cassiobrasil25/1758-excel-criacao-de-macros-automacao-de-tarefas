@@ -112,8 +112,10 @@ Levantamento. Configurável via `EFD_*` no `.env`.
 
 ### Auditoria 12.02 — Rotatividade de Estoque
 
-Junta as **três abas** do documento (Estoque, **01 - ENTRADAS/Compras**,
-**08 - SAÍDAS**) por **CCE** e calcula o CMV como na tela 12.02 da SEFAZ-GO:
+Junta as **três abas** do documento por **CCE + NCM** (nível **Analítico**):
+estoque inicial/final da aba **12.02 › Analítico**, compras da aba
+**01 - ENTRADAS** e saídas da aba **08 - SAÍDAS** — todos casados pelo **código
+NCM** do produto. Calcula o CMV como na tela 12.02 da SEFAZ-GO:
 
 > **CMV = Estoque Inicial + Compras − Estoque Final**
 
