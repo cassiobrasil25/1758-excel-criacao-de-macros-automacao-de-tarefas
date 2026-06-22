@@ -167,7 +167,7 @@ export function loadConfig(): AppConfig {
     },
     rotatividade: {
       companyKey: process.env.ROTATIVIDADE_COMPANY_KEY ?? 'CCE',
-      ncmField: process.env.ROTATIVIDADE_NCM ?? 'NCM',
+      ncmField: process.env.ROTATIVIDADE_NCM ?? 'Cód. do item',
       periodField: process.env.ROTATIVIDADE_PERIOD_FIELD ?? 'Ano/Mês (Referência)',
       estoqueInicialField: process.env.ROTATIVIDADE_ESTOQUE_INICIAL ?? 'Estoque Inicial',
       comprasField: process.env.ROTATIVIDADE_COMPRAS ?? 'Compras',
