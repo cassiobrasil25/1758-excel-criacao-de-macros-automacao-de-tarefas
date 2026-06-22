@@ -7,13 +7,13 @@ export interface RotatividadeOptions {
   periodField: string;
   /** Coluna do estoque inicial. */
   estoqueInicialField: string;
-  /** Coluna das entradas (somadas no período). */
-  entradasField: string;
+  /** Coluna das compras/entradas (somadas no período) — aba 01 ENTRADAS. */
+  comprasField: string;
   /** Coluna do estoque final. */
   estoqueFinalField: string;
-  /** Coluna das saídas (somadas no período). */
+  /** Coluna das saídas (somadas no período) — aba 08 SAÍDAS. */
   saidasField: string;
-  /** Tolerância (em valor) para considerar a equação fechada. */
+  /** Tolerância (em valor) para considerar CMV ≈ Saídas. */
   tolerance: number;
 }
 
@@ -21,32 +21,32 @@ export interface RotatividadeRow {
   cce: string;
   razaoSocial: string;
   estoqueInicial: number;
-  entradas: number;
+  compras: number;
   estoqueFinal: number;
+  /** CMV = Estoque Inicial + Compras − Estoque Final. */
+  cmv: number;
   saidas: number;
-  /** Estoque Inicial + Entradas. */
-  esperado: number;
-  /** Estoque Final + Saídas. */
-  realizado: number;
-  /** esperado - realizado (0 = equação fecha). */
+  /** CMV − Saídas (no modelo EI+Compras=EF+Saídas, deveria ser 0). */
   diferenca: number;
-  status: 'OK' | 'DIVERGENTE';
+  /** OK / DIVERGENTE quando há saídas p/ comparar; CALCULADO se só há CMV. */
+  status: 'OK' | 'DIVERGENTE' | 'CALCULADO';
 }
 
 interface Acc {
   razao: string;
-  entradas: number;
+  compras: number;
   saidas: number;
+  temSaidas: boolean;
   ei?: { period: number; val: number };
   ef?: { period: number; val: number };
 }
 
 /**
- * Auditoria 12.02 — rotatividade (de estoque). Por CCE, verifica a equação:
- *   Estoque Inicial + Entradas = Estoque Final + Saídas.
- * Entradas/Saídas são somadas no período; Estoque Inicial/Final são tomados,
- * respectivamente, no menor e no maior período observado. Divergência indica
- * inconsistência (indício para auditoria).
+ * Auditoria 12.02 — Rotatividade de Estoque. Por CCE, junta as três abas
+ * (Estoque, 01 ENTRADAS/Compras, 08 SAÍDAS) e calcula:
+ *   CMV = Estoque Inicial + Compras − Estoque Final
+ * comparando com as Saídas declaradas (CMV ≈ Saídas no modelo
+ * EI + Compras = EF + Saídas). Divergência indica indício para auditoria.
  */
 export function detectRotatividade(
   reports: NormalizedReport[],
@@ -64,21 +64,24 @@ export function detectRotatividade(
     ]);
     if (!companyCol) continue;
     const periodCol = resolveCol(cols, opts.periodField, [/ano\s*\/?\s*m[eê]s/i, /per[ií]odo/i, /ano/i]);
-    const eiCol = resolveCol(cols, opts.estoqueInicialField, [/estoque\s*inicial/i, /^estoque/i]);
-    const efCol = resolveCol(cols, opts.estoqueFinalField, [/estoque\s*final/i, /^estoque/i]);
-    const entCol = resolveCol(cols, opts.entradasField, [/entrada/i]);
-    const saiCol = resolveCol(cols, opts.saidasField, [/sa.da/i]);
+    const eiCol = resolveCol(cols, opts.estoqueInicialField, [/estoque\s*inicial/i, /invent.*inicial/i, /^estoque/i]);
+    const efCol = resolveCol(cols, opts.estoqueFinalField, [/estoque\s*final/i, /invent.*final/i, /^estoque/i]);
+    const comprasCol = resolveCol(cols, opts.comprasField, [/compra/i, /entrada/i, /valor.*entrada/i]);
+    const saiCol = resolveCol(cols, opts.saidasField, [/sa.da/i, /valor.*sa.da/i]);
     const razaoCol = resolveCol(cols, 'Razao Social', [/raz.o\s*social/i, /nome\s*empres/i]);
 
     for (const row of report.rows) {
       const company = (row[companyCol] ?? '').trim();
       if (!company) continue;
-      const acc = byCompany.get(company) ?? { razao: '', entradas: 0, saidas: 0 };
+      const acc = byCompany.get(company) ?? { razao: '', compras: 0, saidas: 0, temSaidas: false };
       if (!acc.razao && razaoCol) acc.razao = (row[razaoCol] ?? '').trim();
       const period = parsePeriod(periodCol ? row[periodCol] : undefined);
 
-      if (entCol) acc.entradas += parseNum(row[entCol]);
-      if (saiCol) acc.saidas += parseNum(row[saiCol]);
+      if (comprasCol) acc.compras += parseNum(row[comprasCol]);
+      if (saiCol && (row[saiCol] ?? '') !== '') {
+        acc.saidas += parseNum(row[saiCol]);
+        acc.temSaidas = true;
+      }
 
       if (eiCol && (row[eiCol] ?? '') !== '') {
         const val = parseNum(row[eiCol]);
@@ -98,26 +101,34 @@ export function detectRotatividade(
   for (const [cce, acc] of byCompany) {
     const estoqueInicial = acc.ei?.val ?? 0;
     const estoqueFinal = acc.ef?.val ?? 0;
-    const esperado = round2(estoqueInicial + acc.entradas);
-    const realizado = round2(estoqueFinal + acc.saidas);
-    const diferenca = round2(esperado - realizado);
+    const cmv = round2(estoqueInicial + acc.compras - estoqueFinal);
+    const saidas = round2(acc.saidas);
+    const diferenca = round2(cmv - saidas);
+    const status: RotatividadeRow['status'] = !acc.temSaidas
+      ? 'CALCULADO'
+      : Math.abs(diferenca) <= opts.tolerance
+        ? 'OK'
+        : 'DIVERGENTE';
     out.push({
       cce,
       razaoSocial: acc.razao,
       estoqueInicial,
-      entradas: round2(acc.entradas),
+      compras: round2(acc.compras),
       estoqueFinal,
-      saidas: round2(acc.saidas),
-      esperado,
-      realizado,
+      cmv,
+      saidas,
       diferenca,
-      status: Math.abs(diferenca) <= opts.tolerance ? 'OK' : 'DIVERGENTE',
+      status,
     });
   }
 
   // Divergentes (maiores diferenças) primeiro.
+  const rank = (s: RotatividadeRow['status']) => (s === 'DIVERGENTE' ? 0 : s === 'OK' ? 1 : 2);
   return out.sort(
-    (a, b) => Math.abs(b.diferenca) - Math.abs(a.diferenca) || a.cce.localeCompare(b.cce),
+    (a, b) =>
+      rank(a.status) - rank(b.status) ||
+      Math.abs(b.diferenca) - Math.abs(a.diferenca) ||
+      a.cce.localeCompare(b.cce),
   );
 }
 

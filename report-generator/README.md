@@ -110,18 +110,20 @@ o **primeiro período** e a **data de início** da obrigatoriedade (01/MM/AAAA).
 Essa data (real) alimenta a coluna *Data Obrigatoriedade EFD* do relatório do
 Levantamento. Configurável via `EFD_*` no `.env`.
 
-### Auditoria 12.02 — Rotatividade de estoque
+### Auditoria 12.02 — Rotatividade de Estoque
 
-Por **CCE**, confronta a equação contábil-fiscal:
+Junta as **três abas** do documento (Estoque, **01 - ENTRADAS/Compras**,
+**08 - SAÍDAS**) por **CCE** e calcula o CMV como na tela 12.02 da SEFAZ-GO:
 
-> **Estoque Inicial + Entradas = Estoque Final + Saídas**
+> **CMV = Estoque Inicial + Compras − Estoque Final**
 
-Entradas/Saídas são somadas no período; Estoque Inicial/Final são tomados no
-menor/maior período. Gera `runtime/consolidated/rotatividade.xlsx`/`.md` com
-`Esperado` (EI+Entradas), `Realizado` (EF+Saídas), `Diferença` e `Status`
-(`OK`/`DIVERGENTE`) — divergência ≠ 0 é indício para auditoria. As colunas e a
-tolerância são configuráveis via `ROTATIVIDADE_*` no `.env`. Os valores podem
-vir de **abas/provedores diferentes** (estoque, entradas, saídas), cruzados por CCE.
+Confronta o CMV com as **Saídas** declaradas (no modelo EI + Compras = EF +
+Saídas, a diferença `CMV − Saídas` deveria ser 0). Gera
+`runtime/consolidated/rotatividade.xlsx`/`.md` com `CMV`, `Saídas`, `Diferença`
+e `Status` (`OK` / `DIVERGENTE` / `CALCULADO` quando não há saídas p/ comparar).
+Compras/Estoque/Saídas são somados/tomados por período; colunas e tolerância
+são configuráveis via `ROTATIVIDADE_*`. Os valores vêm de **abas diferentes**,
+cruzados por CCE.
 
 ### Relatório do Levantamento (planilha + as duas datas)
 

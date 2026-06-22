@@ -82,7 +82,7 @@ export interface AppConfig {
     companyKey: string;
     periodField: string;
     estoqueInicialField: string;
-    entradasField: string;
+    comprasField: string;
     estoqueFinalField: string;
     saidasField: string;
     tolerance: number;
@@ -168,7 +168,7 @@ export function loadConfig(): AppConfig {
       companyKey: process.env.ROTATIVIDADE_COMPANY_KEY ?? 'CCE',
       periodField: process.env.ROTATIVIDADE_PERIOD_FIELD ?? 'Ano/Mês (Referência)',
       estoqueInicialField: process.env.ROTATIVIDADE_ESTOQUE_INICIAL ?? 'Estoque Inicial',
-      entradasField: process.env.ROTATIVIDADE_ENTRADAS ?? 'Entradas',
+      comprasField: process.env.ROTATIVIDADE_COMPRAS ?? 'Compras',
       estoqueFinalField: process.env.ROTATIVIDADE_ESTOQUE_FINAL ?? 'Estoque Final',
       saidasField: process.env.ROTATIVIDADE_SAIDAS ?? 'Saídas',
       tolerance: Number(process.env.ROTATIVIDADE_TOLERANCE ?? 0.01),
