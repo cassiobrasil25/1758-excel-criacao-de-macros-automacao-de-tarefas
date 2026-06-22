@@ -13,8 +13,10 @@ import {
 } from './output/consolidated';
 import { detectRegimeTransitions, transitionsByCompany } from './transform/regime';
 import { detectEfdObligation } from './transform/efd-obrigatoriedade';
+import { detectRotatividade } from './transform/rotatividade';
 import { writeRegimeTransitionReport } from './output/regime-report';
 import { writeEfdObligationReport } from './output/efd-report';
+import { writeRotatividadeReport } from './output/rotatividade-report';
 import { buildLevantamentoReport, type DateInfo } from './output/levantamento-efd';
 import { MockSource } from './webi/mock';
 import { WebiBrowserSource } from './webi/browser';
@@ -143,6 +145,10 @@ async function main(): Promise<void> {
   const efdMap = detectEfdObligation(analysisReports, cfg.efd);
   const efdReport = await writeEfdObligationReport([...efdMap.values()], cfg.consolidatedDir);
 
+  // Auditoria 12.02: rotatividade do quadro (troca de membros por período).
+  const rotatividade = detectRotatividade(analysisReports, cfg.rotatividade);
+  const rotatividadeReport = await writeRotatividadeReport(rotatividade, cfg.consolidatedDir);
+
   // Datas por empresa: saída do Simples (regime) + obrigatoriedade EFD (campo
   // OBRIGADO tem prioridade; senão usa a data derivada da transição de regime).
   const byCompany = transitionsByCompany(transitions);
@@ -177,6 +183,7 @@ async function main(): Promise<void> {
   log.info(
     `Obrigatoriedade EFD: ${efdReport.obrigados}/${efdReport.total} obrigados | ${efdReport.xlsx}`,
   );
+  log.info(`Rotatividade (12.02): ${rotatividadeReport.total} empresa(s) | ${rotatividadeReport.xlsx}`);
   if (levantamento) {
     log.info(
       `Levantamento + datas: ${levantamento.matched}/${levantamento.totalRows} casados | ${levantamento.xlsx}`,

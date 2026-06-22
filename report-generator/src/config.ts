@@ -77,6 +77,13 @@ export interface AppConfig {
     companyKey: string;
     yesPattern: RegExp;
   };
+  /** Auditoria de rotatividade (12.02): troca de quadro (ex.: sócios) por período. */
+  rotatividade: {
+    memberField: string;
+    companyKey: string;
+    periodField: string;
+    minMudancas: number;
+  };
   cces: CCE[];
   webi: {
     baseUrl: string;
@@ -153,6 +160,12 @@ export function loadConfig(): AppConfig {
       periodField: process.env.EFD_PERIOD_FIELD ?? 'Ano/Mês (Referência)',
       companyKey: process.env.EFD_COMPANY_KEY ?? 'CNPJ',
       yesPattern: new RegExp(process.env.EFD_YES_PATTERN ?? '^s', 'i'),
+    },
+    rotatividade: {
+      memberField: process.env.ROTATIVIDADE_MEMBER_FIELD ?? 'Sócio',
+      companyKey: process.env.ROTATIVIDADE_COMPANY_KEY ?? 'CNPJ',
+      periodField: process.env.ROTATIVIDADE_PERIOD_FIELD ?? 'Ano/Mês (Referência)',
+      minMudancas: Number(process.env.ROTATIVIDADE_MIN ?? 1),
     },
     cces: loadCCEs(),
     webi: {

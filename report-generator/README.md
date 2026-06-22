@@ -110,6 +110,15 @@ o **primeiro período** e a **data de início** da obrigatoriedade (01/MM/AAAA).
 Essa data (real) alimenta a coluna *Data Obrigatoriedade EFD* do relatório do
 Levantamento. Configurável via `EFD_*` no `.env`.
 
+### Auditoria 12.02 — Rotatividade do quadro
+
+Audita a **rotatividade** (por padrão, troca de **sócios**) por empresa (CNPJ):
+conta **entradas** e **saídas** de membros entre períodos consecutivos e gera
+`runtime/consolidated/rotatividade.xlsx`/`.md`, listando as empresas com
+rotatividade ≥ `ROTATIVIDADE_MIN`. O campo do "membro", o identificador e o
+período são configuráveis via `ROTATIVIDADE_*` no `.env` (ajuste se a
+rotatividade for de empregados, cadastro etc. em vez de sócios).
+
 ### Relatório do Levantamento (planilha + as duas datas)
 
 Enriquece uma planilha de origem (ex.: *Levantamento de Autos*) repassando

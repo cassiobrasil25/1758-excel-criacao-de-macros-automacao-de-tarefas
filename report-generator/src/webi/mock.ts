@@ -34,6 +34,7 @@ export class MockSource implements ReportSource {
       'Ano/Mês (Referência)',
       'Tipo Enquadramento',
       'OBRIGADO',
+      'Sócio',
       'Saldo Credor',
     ];
     const h = hash(cce.id);
@@ -43,8 +44,10 @@ export class MockSource implements ReportSource {
     // do Simples para o Normal a partir de um ano de transição determinístico.
     const migra = h % 3 !== 0;
     const anoTransicao = [2023, 2024, 2025][h % 3];
+    // Metade das empresas tem rotatividade de sócio (troca a cada ano).
+    const rotativa = h % 2 === 0;
 
-    const rows = years.map((ano) => {
+    const rows = years.map((ano, idx) => {
       const normal = migra && ano >= anoTransicao;
       return {
         CCE: cce.id,
@@ -54,6 +57,7 @@ export class MockSource implements ReportSource {
         'Ano/Mês (Referência)': `${ano}01`,
         'Tipo Enquadramento': normal ? 'Normal' : 'Simples Nacional',
         OBRIGADO: normal ? 'S' : 'N',
+        Sócio: rotativa ? `SOCIO-${h % 7}-${idx}` : `SOCIO-${h % 7}`,
         'Saldo Credor': (500 + ((h + ano) % 1500)).toFixed(2),
       };
     });
