@@ -1,0 +1,107 @@
+import * as path from 'path';
+import { writeXlsx } from '../xlsx';
+import type { CCE, RawExport, ReportSource } from '../types';
+
+/**
+ * MockSource — implementa ReportSource sem BOE/WebI.
+ * Gera um .xlsx bruto sintético por CCE, permitindo testar a orquestração
+ * (lote sequencial, parse, relatórios individuais e consolidação) ponta a ponta.
+ *
+ * Útil para CI e para validar a lógica antes de plugar o WebI real.
+ */
+export class MockSource implements ReportSource {
+  constructor(private readonly rawDir: string) {}
+
+  async open(): Promise<void> {
+    /* nada a abrir no mock */
+  }
+
+  async runReportForCCE(_cce: CCE): Promise<void> {
+    /* simula refresh/render — instantâneo no mock */
+  }
+
+  async exportRaw(cce: CCE): Promise<RawExport> {
+    // Falha proposital para CCE de id "FAIL*", para exercitar o caminho de erro.
+    if (cce.id.toUpperCase().startsWith('FAIL')) {
+      throw new Error(`(mock) falha simulada de export para o CCE ${cce.id}`);
+    }
+
+    const columns = [
+      'CCE',
+      'CNPJ',
+      'Razao Social',
+      'NCM',
+      'Ano',
+      'Ano/Mês (Referência)',
+      'Tipo Enquadramento',
+      'OBRIGADO',
+      'Estoque Inicial',
+      'Compras',
+      'Estoque Final',
+      'Saídas',
+      'Saldo Credor',
+    ];
+    const h = hash(cce.id);
+    const cnpj = formatCnpj(h);
+    const years = [2022, 2023, 2024, 2025];
+    // 1 em cada 3 empresas NÃO migra (fica sempre no Simples); as demais migram
+    // do Simples para o Normal a partir de um ano de transição determinístico.
+    const migra = h % 3 !== 0;
+    const anoTransicao = [2023, 2024, 2025][h % 3];
+
+    // Rotatividade 12.02 por NCM: CMV = EI + Compras - EF, confrontado com Saídas.
+    // Dois produtos por CCE: o 1º fecha (OK) e o 2º diverge (Saídas < CMV).
+    const ncms = [
+      { ncm: '12345678', saidasAno: 100 }, // CMV 400 vs Saídas 400 -> OK
+      { ncm: '87654321', saidasAno: 75 }, // CMV 400 vs Saídas 300 -> DIVERGENTE
+    ];
+    const estoqueInicial = 1000;
+    const estoqueFinal = 1000;
+    const comprasAno = 100; // soma 4 anos = 400 -> CMV = 1000 + 400 - 1000 = 400
+
+    const rows = ncms.flatMap((p) =>
+      years.map((ano, idx) => {
+        const normal = migra && ano >= anoTransicao;
+        return {
+          CCE: cce.id,
+          CNPJ: cnpj,
+          'Razao Social': `Empresa ${cce.id} LTDA`,
+          NCM: p.ncm,
+          Ano: String(ano),
+          'Ano/Mês (Referência)': `${ano}01`,
+          'Tipo Enquadramento': normal ? 'Normal' : 'Simples Nacional',
+          OBRIGADO: normal ? 'S' : 'N',
+          'Estoque Inicial': idx === 0 ? estoqueInicial.toFixed(2) : '',
+          Compras: comprasAno.toFixed(2),
+          'Estoque Final': idx === years.length - 1 ? estoqueFinal.toFixed(2) : '',
+          'Saídas': p.saidasAno.toFixed(2),
+          'Saldo Credor': (500 + ((h + ano) % 1500)).toFixed(2),
+        };
+      }),
+    );
+
+    const filePath = path.join(this.rawDir, `${cce.id}.xlsx`);
+    await writeXlsx(filePath, [{ name: 'EFD_MOV', columns, rows }]);
+    return { cce, filePath };
+  }
+
+  async screenshotError(_cce: CCE): Promise<string | undefined> {
+    return undefined; // sem navegador no mock
+  }
+
+  async close(): Promise<void> {
+    /* nada a fechar */
+  }
+}
+
+function hash(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return h;
+}
+
+/** CNPJ sintético determinístico (apenas para o mock). */
+function formatCnpj(h: number): string {
+  const d = String(h).padStart(14, '0').slice(0, 14);
+  return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12, 14)}`;
+}

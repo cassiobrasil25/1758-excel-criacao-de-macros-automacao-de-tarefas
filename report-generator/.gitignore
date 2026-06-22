@@ -1,0 +1,7 @@
+node_modules/
+dist/
+runtime/
+.env
+# Dados sensíveis (identificadores reais de contribuintes) — não versionar
+config/cces.json
+config/levantamento.xlsx

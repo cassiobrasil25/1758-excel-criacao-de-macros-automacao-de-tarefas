@@ -1,0 +1,28 @@
+{
+  "name": "report-generator",
+  "version": "1.0.0",
+  "description": "Geração de relatórios em lote (BOE + WebI) por CCE — execução em sequência (concurrency = 1).",
+  "license": "MIT",
+  "type": "commonjs",
+  "scripts": {
+    "build": "tsc",
+    "start": "tsx src/index.ts",
+    "start:mock": "MODE=mock tsx src/index.ts",
+    "chrome": "node scripts/start-chrome.mjs",
+    "inspect": "tsx src/inspect.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "exceljs": "^4.4.0",
+    "playwright": "^1.45.0"
+  },
+  "overrides": {
+    "uuid": "^11.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "tsx": "^4.16.0",
+    "typescript": "^5.5.0"
+  }
+}
