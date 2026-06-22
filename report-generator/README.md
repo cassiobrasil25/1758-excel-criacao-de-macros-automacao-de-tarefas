@@ -110,14 +110,18 @@ o **primeiro período** e a **data de início** da obrigatoriedade (01/MM/AAAA).
 Essa data (real) alimenta a coluna *Data Obrigatoriedade EFD* do relatório do
 Levantamento. Configurável via `EFD_*` no `.env`.
 
-### Auditoria 12.02 — Rotatividade do quadro
+### Auditoria 12.02 — Rotatividade de estoque
 
-Audita a **rotatividade** (por padrão, troca de **sócios**) por empresa (CNPJ):
-conta **entradas** e **saídas** de membros entre períodos consecutivos e gera
-`runtime/consolidated/rotatividade.xlsx`/`.md`, listando as empresas com
-rotatividade ≥ `ROTATIVIDADE_MIN`. O campo do "membro", o identificador e o
-período são configuráveis via `ROTATIVIDADE_*` no `.env` (ajuste se a
-rotatividade for de empregados, cadastro etc. em vez de sócios).
+Por **CCE**, confronta a equação contábil-fiscal:
+
+> **Estoque Inicial + Entradas = Estoque Final + Saídas**
+
+Entradas/Saídas são somadas no período; Estoque Inicial/Final são tomados no
+menor/maior período. Gera `runtime/consolidated/rotatividade.xlsx`/`.md` com
+`Esperado` (EI+Entradas), `Realizado` (EF+Saídas), `Diferença` e `Status`
+(`OK`/`DIVERGENTE`) — divergência ≠ 0 é indício para auditoria. As colunas e a
+tolerância são configuráveis via `ROTATIVIDADE_*` no `.env`. Os valores podem
+vir de **abas/provedores diferentes** (estoque, entradas, saídas), cruzados por CCE.
 
 ### Relatório do Levantamento (planilha + as duas datas)
 

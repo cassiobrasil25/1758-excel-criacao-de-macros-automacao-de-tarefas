@@ -1,132 +1,124 @@
 import type { NormalizedReport } from '../types';
-import { normalizeKey } from './regime';
 
 export interface RotatividadeOptions {
-  /** Coluna do "membro" que entra/sai (ex.: sócio). */
-  memberField: string;
-  /** Coluna identificadora da empresa (ex.: "CNPJ"). */
+  /** Identificador da empresa (ex.: "CCE"). */
   companyKey: string;
-  /** Coluna do período (ex.: "Ano/Mês (Referência)" ou "Ano"). */
+  /** Coluna de período (para escolher estoque inicial/final por data). */
   periodField: string;
-  /** Mínimo de mudanças (entradas+saídas) para entrar no relatório. */
-  minMudancas: number;
+  /** Coluna do estoque inicial. */
+  estoqueInicialField: string;
+  /** Coluna das entradas (somadas no período). */
+  entradasField: string;
+  /** Coluna do estoque final. */
+  estoqueFinalField: string;
+  /** Coluna das saídas (somadas no período). */
+  saidasField: string;
+  /** Tolerância (em valor) para considerar a equação fechada. */
+  tolerance: number;
 }
 
 export interface RotatividadeRow {
-  cnpj: string;
-  razaoSocial: string;
   cce: string;
-  periodos: number;
-  membrosDistintos: number;
+  razaoSocial: string;
+  estoqueInicial: number;
   entradas: number;
+  estoqueFinal: number;
   saidas: number;
-  /** Total de mudanças no quadro (entradas + saídas). */
-  rotatividade: number;
-  /** Linha do tempo "periodo:[membros]" para conferência. */
-  linhaDoTempo: string;
+  /** Estoque Inicial + Entradas. */
+  esperado: number;
+  /** Estoque Final + Saídas. */
+  realizado: number;
+  /** esperado - realizado (0 = equação fecha). */
+  diferenca: number;
+  status: 'OK' | 'DIVERGENTE';
 }
 
-interface Obs {
-  company: string;
+interface Acc {
   razao: string;
-  cce: string;
-  period: number;
-  member: string;
+  entradas: number;
+  saidas: number;
+  ei?: { period: number; val: number };
+  ef?: { period: number; val: number };
 }
 
 /**
- * Audita a "rotatividade" do quadro (por padrão, sócios) por empresa (CNPJ):
- * conta entradas e saídas de membros entre períodos consecutivos.
+ * Auditoria 12.02 — rotatividade (de estoque). Por CCE, verifica a equação:
+ *   Estoque Inicial + Entradas = Estoque Final + Saídas.
+ * Entradas/Saídas são somadas no período; Estoque Inicial/Final são tomados,
+ * respectivamente, no menor e no maior período observado. Divergência indica
+ * inconsistência (indício para auditoria).
  */
 export function detectRotatividade(
   reports: NormalizedReport[],
   opts: RotatividadeOptions,
 ): RotatividadeRow[] {
-  const observations: Obs[] = [];
+  const byCompany = new Map<string, Acc>();
+  const singleEstoque = opts.estoqueInicialField === opts.estoqueFinalField;
 
   for (const report of reports) {
     const cols = report.columns;
-    const companyCol = resolveCol(cols, opts.companyKey, [/cnpj/i, /n[uú]mero\s*de\s*inscri/i, /cce/i]);
-    const memberCol = resolveCol(cols, opts.memberField, [/s[oó]cio/i, /cpf/i, /respons/i, /nome.*s[oó]c/i]);
-    const periodCol = resolveCol(cols, opts.periodField, [/ano\s*\/?\s*m[eê]s/i, /per[ií]odo/i, /^ano\b/i]);
+    const companyCol = resolveCol(cols, opts.companyKey, [
+      /cce/i,
+      /cnpj/i,
+      /n[uú]mero\s*de\s*inscri/i,
+    ]);
+    if (!companyCol) continue;
+    const periodCol = resolveCol(cols, opts.periodField, [/ano\s*\/?\s*m[eê]s/i, /per[ií]odo/i, /ano/i]);
+    const eiCol = resolveCol(cols, opts.estoqueInicialField, [/estoque\s*inicial/i, /^estoque/i]);
+    const efCol = resolveCol(cols, opts.estoqueFinalField, [/estoque\s*final/i, /^estoque/i]);
+    const entCol = resolveCol(cols, opts.entradasField, [/entrada/i]);
+    const saiCol = resolveCol(cols, opts.saidasField, [/sa.da/i]);
     const razaoCol = resolveCol(cols, 'Razao Social', [/raz.o\s*social/i, /nome\s*empres/i]);
-    if (!companyCol || !memberCol || !periodCol) continue;
 
     for (const row of report.rows) {
-      const period = parsePeriod(row[periodCol]);
-      const member = (row[memberCol] ?? '').trim();
       const company = (row[companyCol] ?? '').trim();
-      if (period === undefined || !company || !member) continue;
-      observations.push({
-        company,
-        razao: razaoCol ? (row[razaoCol] ?? '').trim() : '',
-        cce: report.cce.id,
-        period,
-        member,
-      });
-    }
-  }
+      if (!company) continue;
+      const acc = byCompany.get(company) ?? { razao: '', entradas: 0, saidas: 0 };
+      if (!acc.razao && razaoCol) acc.razao = (row[razaoCol] ?? '').trim();
+      const period = parsePeriod(periodCol ? row[periodCol] : undefined);
 
-  const byCompany = new Map<string, Obs[]>();
-  for (const o of observations) {
-    const list = byCompany.get(o.company) ?? [];
-    list.push(o);
-    byCompany.set(o.company, list);
+      if (entCol) acc.entradas += parseNum(row[entCol]);
+      if (saiCol) acc.saidas += parseNum(row[saiCol]);
+
+      if (eiCol && (row[eiCol] ?? '') !== '') {
+        const val = parseNum(row[eiCol]);
+        if (!acc.ei || period < acc.ei.period) acc.ei = { period, val };
+      }
+      const efSource = singleEstoque ? eiCol : efCol;
+      if (efSource && (row[efSource] ?? '') !== '') {
+        const val = parseNum(row[efSource]);
+        if (!acc.ef || period > acc.ef.period) acc.ef = { period, val };
+      }
+
+      byCompany.set(company, acc);
+    }
   }
 
   const out: RotatividadeRow[] = [];
-  for (const [company, obs] of byCompany) {
-    // membros por período
-    const byPeriod = new Map<number, Set<string>>();
-    for (const o of obs) {
-      const set = byPeriod.get(o.period) ?? new Set<string>();
-      set.add(o.member);
-      byPeriod.set(o.period, set);
-    }
-    const periods = [...byPeriod.keys()].sort((a, b) => a - b);
-
-    let entradas = 0;
-    let saidas = 0;
-    for (let i = 1; i < periods.length; i++) {
-      const prev = byPeriod.get(periods[i - 1])!;
-      const cur = byPeriod.get(periods[i])!;
-      for (const m of cur) if (!prev.has(m)) entradas++;
-      for (const m of prev) if (!cur.has(m)) saidas++;
-    }
-
-    const distintos = new Set(obs.map((o) => o.member)).size;
-    const rotatividade = entradas + saidas;
-    if (rotatividade < opts.minMudancas) continue;
-
-    const latest = [...obs].sort((a, b) => b.period - a.period)[0];
-    const linhaDoTempo = periods
-      .map((p) => `${p}:[${[...byPeriod.get(p)!].join(',')}]`)
-      .join(' ');
-
+  for (const [cce, acc] of byCompany) {
+    const estoqueInicial = acc.ei?.val ?? 0;
+    const estoqueFinal = acc.ef?.val ?? 0;
+    const esperado = round2(estoqueInicial + acc.entradas);
+    const realizado = round2(estoqueFinal + acc.saidas);
+    const diferenca = round2(esperado - realizado);
     out.push({
-      cnpj: company,
-      razaoSocial: latest.razao,
-      cce: latest.cce,
-      periodos: periods.length,
-      membrosDistintos: distintos,
-      entradas,
-      saidas,
-      rotatividade,
-      linhaDoTempo,
+      cce,
+      razaoSocial: acc.razao,
+      estoqueInicial,
+      entradas: round2(acc.entradas),
+      estoqueFinal,
+      saidas: round2(acc.saidas),
+      esperado,
+      realizado,
+      diferenca,
+      status: Math.abs(diferenca) <= opts.tolerance ? 'OK' : 'DIVERGENTE',
     });
   }
 
-  return out.sort((a, b) => b.rotatividade - a.rotatividade || a.cnpj.localeCompare(b.cnpj));
-}
-
-/** Indexa por identificador normalizado (dígitos), p/ cruzar com outras análises. */
-export function rotatividadeByCompany(rows: RotatividadeRow[]): Map<string, RotatividadeRow> {
-  const map = new Map<string, RotatividadeRow>();
-  for (const r of rows) {
-    const k = normalizeKey(r.cnpj);
-    if (k) map.set(k, r);
-  }
-  return map;
+  // Divergentes (maiores diferenças) primeiro.
+  return out.sort(
+    (a, b) => Math.abs(b.diferenca) - Math.abs(a.diferenca) || a.cce.localeCompare(b.cce),
+  );
 }
 
 function resolveCol(columns: string[], preferred: string, regexes: RegExp[]): string | undefined {
@@ -140,11 +132,22 @@ function resolveCol(columns: string[], preferred: string, regexes: RegExp[]): st
   return undefined;
 }
 
-/** "201201"->201201; "2012"->2012 (YYYYMM ou YYYY). */
-function parsePeriod(value: string | undefined): number | undefined {
-  if (!value) return undefined;
+/** Converte número BR ("1.234,56") ou US ("1234.56") para float. */
+function parseNum(value: string | undefined): number {
+  if (!value) return 0;
+  let s = value.trim().replace(/[^\d,.-]/g, '');
+  if (!s) return 0;
+  if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.'); // BR: . milhar, , decimal
+  const n = Number(s);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function parsePeriod(value: string | undefined): number {
+  if (!value) return 0;
   const d = value.replace(/\D/g, '');
-  if (d.length >= 6) return Number(d.slice(0, 6));
-  if (d.length >= 4) return Number(d.slice(0, 4));
-  return undefined;
+  return d ? Number(d.slice(0, 6)) : 0;
+}
+
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
 }

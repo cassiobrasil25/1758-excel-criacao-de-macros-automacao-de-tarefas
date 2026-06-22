@@ -183,7 +183,9 @@ async function main(): Promise<void> {
   log.info(
     `Obrigatoriedade EFD: ${efdReport.obrigados}/${efdReport.total} obrigados | ${efdReport.xlsx}`,
   );
-  log.info(`Rotatividade (12.02): ${rotatividadeReport.total} empresa(s) | ${rotatividadeReport.xlsx}`);
+  log.info(
+    `Rotatividade (12.02): ${rotatividadeReport.divergentes}/${rotatividadeReport.total} divergentes | ${rotatividadeReport.xlsx}`,
+  );
   if (levantamento) {
     log.info(
       `Levantamento + datas: ${levantamento.matched}/${levantamento.totalRows} casados | ${levantamento.xlsx}`,

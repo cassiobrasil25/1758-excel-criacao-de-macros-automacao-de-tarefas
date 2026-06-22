@@ -77,12 +77,15 @@ export interface AppConfig {
     companyKey: string;
     yesPattern: RegExp;
   };
-  /** Auditoria de rotatividade (12.02): troca de quadro (ex.: sócios) por período. */
+  /** Auditoria 12.02 — rotatividade de estoque (EI + Entradas = EF + Saídas). */
   rotatividade: {
-    memberField: string;
     companyKey: string;
     periodField: string;
-    minMudancas: number;
+    estoqueInicialField: string;
+    entradasField: string;
+    estoqueFinalField: string;
+    saidasField: string;
+    tolerance: number;
   };
   cces: CCE[];
   webi: {
@@ -162,10 +165,13 @@ export function loadConfig(): AppConfig {
       yesPattern: new RegExp(process.env.EFD_YES_PATTERN ?? '^s', 'i'),
     },
     rotatividade: {
-      memberField: process.env.ROTATIVIDADE_MEMBER_FIELD ?? 'Sócio',
-      companyKey: process.env.ROTATIVIDADE_COMPANY_KEY ?? 'CNPJ',
+      companyKey: process.env.ROTATIVIDADE_COMPANY_KEY ?? 'CCE',
       periodField: process.env.ROTATIVIDADE_PERIOD_FIELD ?? 'Ano/Mês (Referência)',
-      minMudancas: Number(process.env.ROTATIVIDADE_MIN ?? 1),
+      estoqueInicialField: process.env.ROTATIVIDADE_ESTOQUE_INICIAL ?? 'Estoque Inicial',
+      entradasField: process.env.ROTATIVIDADE_ENTRADAS ?? 'Entradas',
+      estoqueFinalField: process.env.ROTATIVIDADE_ESTOQUE_FINAL ?? 'Estoque Final',
+      saidasField: process.env.ROTATIVIDADE_SAIDAS ?? 'Saídas',
+      tolerance: Number(process.env.ROTATIVIDADE_TOLERANCE ?? 0.01),
     },
     cces: loadCCEs(),
     webi: {

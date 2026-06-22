@@ -34,7 +34,10 @@ export class MockSource implements ReportSource {
       'Ano/Mês (Referência)',
       'Tipo Enquadramento',
       'OBRIGADO',
-      'Sócio',
+      'Estoque Inicial',
+      'Entradas',
+      'Estoque Final',
+      'Saídas',
       'Saldo Credor',
     ];
     const h = hash(cce.id);
@@ -44,8 +47,14 @@ export class MockSource implements ReportSource {
     // do Simples para o Normal a partir de um ano de transição determinístico.
     const migra = h % 3 !== 0;
     const anoTransicao = [2023, 2024, 2025][h % 3];
-    // Metade das empresas tem rotatividade de sócio (troca a cada ano).
-    const rotativa = h % 2 === 0;
+
+    // Rotatividade de estoque: EI + Entradas = EF + Saídas.
+    // Metade das empresas (h % 2) tem divergência proposital (EF reduzido).
+    const estoqueInicial = 1000;
+    const entradasAno = 100; // soma 4 anos = 400
+    const saidasAno = 100; // soma 4 anos = 400
+    // Para fechar: EF = EI + Entradas - Saídas = 1000 + 400 - 400 = 1000.
+    const estoqueFinal = h % 2 === 0 ? 900 : 1000; // 900 => DIVERGENTE (dif 100)
 
     const rows = years.map((ano, idx) => {
       const normal = migra && ano >= anoTransicao;
@@ -57,7 +66,10 @@ export class MockSource implements ReportSource {
         'Ano/Mês (Referência)': `${ano}01`,
         'Tipo Enquadramento': normal ? 'Normal' : 'Simples Nacional',
         OBRIGADO: normal ? 'S' : 'N',
-        Sócio: rotativa ? `SOCIO-${h % 7}-${idx}` : `SOCIO-${h % 7}`,
+        'Estoque Inicial': idx === 0 ? estoqueInicial.toFixed(2) : '',
+        Entradas: entradasAno.toFixed(2),
+        'Estoque Final': idx === years.length - 1 ? estoqueFinal.toFixed(2) : '',
+        'Saídas': saidasAno.toFixed(2),
         'Saldo Credor': (500 + ((h + ano) % 1500)).toFixed(2),
       };
     });
